@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Summarizer</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 40px 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      width: 100%;
+      max-width: 720px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+
+    .header p {
+      font-size: 14px;
+      color: #888;
+      margin-top: 6px;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #444;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 16px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 12px;
+      font-size: 14px;
+      font-family: inherit;
+      resize: vertical;
+      height: 200px;
+      outline: none;
+      transition: border 0.2s;
+      color: #1a1a1a;
+      line-height: 1.6;
+    }
+
+    textarea:focus { border-color: #6c63ff; }
+
+    .word-count {
+      font-size: 12px;
+      color: #aaa;
+      text-align: right;
+      margin-top: 6px;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #6c63ff;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 16px;
+      transition: background 0.2s;
+      font-family: inherit;
+    }
+
+    button:hover    { background: #574fd6; }
+    button:disabled { background: #b0acf5; cursor: not-allowed; }
+
+    .result {
+      margin-top: 28px;
+      display: none;
+    }
+
+    .summary-box {
+      background: #f5f3ff;
+      border: 1.5px solid #d1c4e9;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .summary-box h3 {
+      font-size: 13px;
+      font-weight: 600;
+      color: #6c63ff;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .summary-box p {
+      font-size: 15px;
+      color: #1a1a1a;
+      line-height: 1.7;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .stat {
+      background: #f9f9f9;
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+      border: 1px solid #eee;
+    }
+
+    .stat-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: #6c63ff;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: #999;
+      margin-top: 4px;
+    }
+
+    .error-box {
+      background: #fce4ec;
+      border: 1.5px solid #f48fb1;
+      border-radius: 12px;
+      padding: 16px;
+      color: #c62828;
+      font-size: 14px;
+      margin-top: 16px;
+      display: none;
+    }
+
+    .examples {
+      margin-top: 24px;
+    }
+
+    .examples p {
+      font-size: 12px;
+      color: #999;
+      margin-bottom: 10px;
+    }
+
+    .example-btn {
+      background: #f5f5f5;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 12px;
+      cursor: pointer;
+      margin-right: 8px;
+      margin-bottom: 8px;
+      color: #444;
+      transition: background 0.15s;
+      display: inline-block;
+    }
+
+    .example-btn:hover {
+      background: #ede7ff;
+      border-color: #6c63ff;
+      color: #6c63ff;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>Summarizer</h1>
+    <p>Paste any long text and get a clean summary instantly</p>
+  </div>
+
+  <label>Paste your text below (minimum 50 words)</label>
+  <textarea
+    id="inputText"
+    placeholder="Paste a news article, paragraph, or any long text here..."
+  ></textarea>
+  <div class="word-count" id="wordCount">0 words</div>
+
+  <button id="summarizeBtn" onclick="summarize()">
+    Summarize
+  </button>
+
+  <div class="error-box" id="errorBox"></div>
+
+  <div class="result" id="result">
+    <div class="summary-box">
+      <h3>Summary</h3>
+      <p id="summaryText"></p>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-value" id="originalWords">0</div>
+        <div class="stat-label">Original words</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="summaryWords">0</div>
+        <div class="stat-label">Summary words</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="reducedBy">0%</div>
+        <div class="stat-label">Reduced by</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="examples">
+    <p>Try a sample text:</p>
+    <span class="example-btn" onclick="loadExample(1)">🌍 Climate Change</span>
+    <span class="example-btn" onclick="loadExample(2)">🤖 Artificial Intelligence</span>
+    <span class="example-btn" onclick="loadExample(3)">🏥 Healthcare</span>
+  </div>
+</div>
+
+<script>
+  const inputText    = document.getElementById("inputText");
+  const wordCountEl  = document.getElementById("wordCount");
+  const summarizeBtn = document.getElementById("summarizeBtn");
+  const resultBox    = document.getElementById("result");
+  const errorBox     = document.getElementById("errorBox");
+
+  const examples = {
+    1: `Climate change refers to long-term shifts in temperatures and weather patterns. These shifts may be natural, such as through variations in the solar cycle. But since the 1800s, human activities have been the main driver of climate change, primarily due to burning fossil fuels like coal, oil and gas. Burning fossil fuels generates greenhouse gas emissions that act like a blanket wrapped around the Earth, trapping the sun's heat and raising temperatures. Examples of greenhouse gas emissions that are causing climate change include carbon dioxide and methane. These come from using gasoline for driving a car or coal for heating a building, for example. Clearing land and forests can also release carbon dioxide. Landfills for garbage are a major source of methane emissions. Energy, industry, transport, buildings, agriculture and land use are among the main emitters.`,
+
+    2: `Artificial intelligence is the simulation of human intelligence processes by computer systems. Specific applications of AI include expert systems, natural language processing, speech recognition and machine vision. AI programming focuses on three cognitive skills: learning, reasoning and self-correction. The learning aspect of AI programming focuses on acquiring data and creating rules for how to turn the data into actionable information. The reasoning aspect focuses on choosing the right algorithm to reach a desired outcome. The self-correction aspect is designed to continually fine-tune algorithms and ensure they provide the most accurate results possible. AI is important because it gives enterprises insights into their operations that they may not have been aware of previously and because, in some cases, AI can perform tasks better than humans.`,
+
+    3: `Healthcare is the maintenance or improvement of health via the prevention, diagnosis, treatment, recovery, or cure of disease, illness, injury, and other physical and mental impairments in people. Healthcare is delivered by health professionals and allied health fields. Medicine, dentistry, pharmacy, midwifery, nursing, optometry, audiology, psychology, occupational therapy, physical therapy, athletic training and other health professions are all part of healthcare. It includes work done in providing primary care, secondary care, and tertiary care, as well as in public health. Access to healthcare may vary across countries, communities, and individuals, largely influenced by social and economic conditions as well as health policies. Providing healthcare services means going beyond diagnosis and treatment to include education and prevention as well.`
+  };
+
+  // live word count as user types
+  inputText.addEventListener("input", function() {
+    const words = inputText.value.trim() === ""
+      ? 0
+      : inputText.value.trim().split(/\s+/).length;
+    wordCountEl.textContent = `${words} words`;
+    wordCountEl.style.color = words >= 50 ? "#6c63ff" : "#aaa";
+  });
+
+  function loadExample(num) {
+    inputText.value = examples[num];
+    inputText.dispatchEvent(new Event("input"));
+  }
+
+  async function summarize() {
+    const text = inputText.value.trim();
+    if (text === "") return;
+
+    summarizeBtn.disabled     = true;
+    summarizeBtn.textContent  = "Summarizing...";
+    resultBox.style.display   = "none";
+    errorBox.style.display    = "none";
+
+    try {
+      const response = await fetch("http://127.0.0.1:5000/summarize", {
+        method : "POST",
+        headers: { "Content-Type": "application/json" },
+        body   : JSON.stringify({ text: text })
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        errorBox.textContent   = data.error;
+        errorBox.style.display = "block";
+      } else {
+        document.getElementById("summaryText").textContent    = data.summary;
+        document.getElementById("originalWords").textContent  = data.original_words;
+        document.getElementById("summaryWords").textContent   = data.summary_words;
+        document.getElementById("reducedBy").textContent      = `${data.reduced_by}%`;
+        resultBox.style.display = "block";
+      }
+
+    } catch (err) {
+      errorBox.textContent   = "Error: Is app.py running?";
+      errorBox.style.display = "block";
+    }
+
+    summarizeBtn.disabled    = false;
+    summarizeBtn.textContent = "Summarize";
+  }
+</script>
+
+</body>
+</html>
