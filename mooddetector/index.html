@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MoodDetector</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      width: 100%;
+      max-width: 580px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+
+    .header p {
+      font-size: 14px;
+      color: #888;
+      margin-top: 6px;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 16px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 12px;
+      font-size: 15px;
+      font-family: inherit;
+      resize: none;
+      height: 120px;
+      outline: none;
+      transition: border 0.2s;
+      color: #1a1a1a;
+    }
+
+    textarea:focus { border-color: #6c63ff; }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #6c63ff;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 14px;
+      transition: background 0.2s;
+      font-family: inherit;
+    }
+
+    button:hover    { background: #574fd6; }
+    button:disabled { background: #b0acf5; cursor: not-allowed; }
+
+    .result {
+      margin-top: 28px;
+      padding: 24px;
+      border-radius: 16px;
+      text-align: center;
+      display: none;
+    }
+
+    .result.positive { background: #e8f5e9; border: 1.5px solid #a5d6a7; }
+    .result.negative { background: #fce4ec; border: 1.5px solid #f48fb1; }
+
+    .result-emoji { font-size: 52px; margin-bottom: 10px; }
+
+    .result-mood {
+      font-size: 26px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .result.positive .result-mood { color: #2e7d32; }
+    .result.negative .result-mood { color: #c62828; }
+
+    .result-confidence {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 16px;
+    }
+
+    .confidence-bar-wrap {
+      background: #e0e0e0;
+      border-radius: 99px;
+      height: 8px;
+      overflow: hidden;
+    }
+
+    .confidence-bar {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 0.6s ease;
+    }
+
+    .result.positive .confidence-bar { background: #43a047; }
+    .result.negative .confidence-bar { background: #e53935; }
+
+    .examples {
+      margin-top: 24px;
+    }
+
+    .examples p {
+      font-size: 12px;
+      color: #999;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .example-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .chip {
+      padding: 6px 14px;
+      background: #f5f5f5;
+      border: 1px solid #e0e0e0;
+      border-radius: 99px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.15s;
+      color: #444;
+    }
+
+    .chip:hover { background: #ede7ff; border-color: #6c63ff; color: #6c63ff; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>MoodDetector</h1>
+    <p>Type any sentence and I will detect the emotion behind it</p>
+  </div>
+
+  <textarea
+    id="userText"
+    placeholder="e.g. I just got a promotion at work!"
+  ></textarea>
+
+  <button id="analyzeBtn" onclick="analyzeMood()">
+    Detect Mood
+  </button>
+
+  <div class="result" id="result">
+    <div class="result-emoji" id="resultEmoji"></div>
+    <div class="result-mood"  id="resultMood"></div>
+    <div class="result-confidence" id="resultConfidence"></div>
+    <div class="confidence-bar-wrap">
+      <div class="confidence-bar" id="confidenceBar" style="width:0%"></div>
+    </div>
+  </div>
+
+  <div class="examples">
+    <p>Try these examples:</p>
+    <div class="example-chips">
+      <span class="chip" onclick="tryExample(this)">I just got a promotion!</span>
+      <span class="chip" onclick="tryExample(this)">I failed my exam today</span>
+      <span class="chip" onclick="tryExample(this)">This is the best day ever</span>
+      <span class="chip" onclick="tryExample(this)">I hate Mondays</span>
+      <span class="chip" onclick="tryExample(this)">Feeling grateful today</span>
+      <span class="chip" onclick="tryExample(this)">Everything went wrong</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  const userText     = document.getElementById("userText");
+  const analyzeBtn   = document.getElementById("analyzeBtn");
+  const resultBox    = document.getElementById("result");
+  const resultEmoji  = document.getElementById("resultEmoji");
+  const resultMood   = document.getElementById("resultMood");
+  const resultConf   = document.getElementById("resultConfidence");
+  const confBar      = document.getElementById("confidenceBar");
+
+  // clicking an example chip fills the textarea
+  function tryExample(el) {
+    userText.value = el.textContent;
+    userText.focus();
+  }
+
+  // Enter key submits
+  userText.addEventListener("keydown", function(e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      analyzeMood();
+    }
+  });
+
+  async function analyzeMood() {
+    const text = userText.value.trim();
+    if (text === "") return;
+
+    analyzeBtn.disabled = true;
+    analyzeBtn.textContent = "Analyzing...";
+    resultBox.style.display = "none";
+
+    try {
+      const response = await fetch("http://127.0.0.1:5000/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: text })
+      });
+
+      const data = await response.json();
+
+      // update UI with result
+      const mood = data.mood.toLowerCase();
+      resultBox.className  = `result ${mood}`;
+      resultEmoji.textContent  = data.emoji;
+      resultMood.textContent   = data.mood;
+      resultConf.textContent   = `Confidence: ${data.confidence}%`;
+      confBar.style.width      = `${data.confidence}%`;
+      resultBox.style.display  = "block";
+
+    } catch (err) {
+      alert("Error: Is app.py running?");
+    }
+
+    analyzeBtn.disabled = false;
+    analyzeBtn.textContent = "Detect Mood";
+  }
+</script>
+
+</body>
+</html>
