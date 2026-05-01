@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EntityExtractor</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 40px 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      width: 100%;
+      max-width: 720px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .header h1 { font-size: 28px; font-weight: 700; color: #1a1a1a; }
+    .header p  { font-size: 14px; color: #888; margin-top: 6px; }
+
+    label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #444;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 16px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 12px;
+      font-size: 14px;
+      font-family: inherit;
+      resize: vertical;
+      height: 180px;
+      outline: none;
+      transition: border 0.2s;
+      color: #1a1a1a;
+      line-height: 1.6;
+    }
+
+    textarea:focus { border-color: #6c63ff; }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #6c63ff;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 14px;
+      transition: background 0.2s;
+      font-family: inherit;
+    }
+
+    button:hover    { background: #574fd6; }
+    button:disabled { background: #b0acf5; cursor: not-allowed; }
+
+    .results { margin-top: 28px; display: none; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .stat {
+      background: #f9f9f9;
+      border-radius: 10px;
+      padding: 12px 16px;
+      text-align: center;
+      border: 1px solid #eee;
+    }
+
+    .stat-value { font-size: 24px; font-weight: 700; color: #6c63ff; }
+    .stat-label { font-size: 11px; color: #999; margin-top: 3px; }
+
+    .category { margin-bottom: 16px; }
+
+    .category-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .tag {
+      padding: 5px 12px;
+      border-radius: 99px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .tag-person       { background: #e3f2fd; color: #1565c0; }
+    .tag-organization { background: #f3e5f5; color: #6a1b9a; }
+    .tag-location     { background: #e8f5e9; color: #2e7d32; }
+    .tag-date         { background: #fff3e0; color: #e65100; }
+    .tag-skill        { background: #fce4ec; color: #880e4f; }
+    .tag-award { background: #fef3c7; color: #b7791f; }
+
+    .empty {
+      font-size: 13px;
+      color: #bbb;
+      font-style: italic;
+    }
+
+    .error-box {
+      background: #fce4ec;
+      border: 1.5px solid #f48fb1;
+      border-radius: 12px;
+      padding: 16px;
+      color: #c62828;
+      font-size: 14px;
+      margin-top: 16px;
+      display: none;
+    }
+
+    .examples {
+      margin-top: 20px;
+    }
+
+    .examples p {
+      font-size: 12px;
+      color: #999;
+      margin-bottom: 8px;
+    }
+
+    .example-btn {
+      background: #f5f5f5;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-size: 12px;
+      cursor: pointer;
+      margin-right: 8px;
+      margin-bottom: 8px;
+      color: #444;
+      transition: background 0.15s;
+      display: inline-block;
+    }
+
+    .example-btn:hover {
+      background: #ede7ff;
+      border-color: #6c63ff;
+      color: #6c63ff;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>EntityExtractor</h1>
+    <p>Paste any text and extract people, places, organisations, dates and skills</p>
+  </div>
+
+  <label>Paste your text below</label>
+  <textarea id="inputText" placeholder="Paste a news article, job description, or any paragraph..."></textarea>
+
+  <button id="extractBtn" onclick="extractEntities()">Extract Entities</button>
+
+  <div class="error-box" id="errorBox"></div>
+
+  <div class="results" id="results">
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-value" id="totalEntities">0</div>
+        <div class="stat-label">Total entities found</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="wordCount">0</div>
+        <div class="stat-label">Words analysed</div>
+      </div>
+    </div>
+
+    <div class="category">
+      <div class="category-title" style="color:#1565c0">👤 Persons</div>
+      <div class="tags" id="persons"></div>
+    </div>
+
+    <div class="category">
+      <div class="category-title" style="color:#6a1b9a">🏢 Organisations</div>
+      <div class="tags" id="organizations"></div>
+    </div>
+
+    <div class="category">
+      <div class="category-title" style="color:#2e7d32">📍 Locations</div>
+      <div class="tags" id="locations"></div>
+    </div>
+
+    <div class="category">
+      <div class="category-title" style="color:#e65100">📅 Dates</div>
+      <div class="tags" id="dates"></div>
+    </div>
+
+    <div class="category">
+      <div class="category-title" style="color:#880e4f">⚙️ Skills & Technologies</div>
+      <div class="tags" id="skills"></div>
+    </div>
+    <div class="category">
+      <div class="category-title" style="color:#b7791f">🏆 Awards</div>
+      <div class="tags" id="awards"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const examples = {
+    news: `Elon Musk, CEO of Tesla and SpaceX, announced on Monday that the company 
+will expand its operations to India by 2025. The decision was made after 
+meetings with Prime Minister Narendra Modi in New Delhi last week. 
+Microsoft and Google have already established offices in Bangalore and Hyderabad.`,
+
+    job: `We are looking for a Senior AI Engineer to join our team in San Francisco. 
+The ideal candidate should have experience with Python, TensorFlow, PyTorch, 
+and LangChain. Knowledge of AWS and Docker is required. The role involves 
+working with OpenAI APIs and building RAG pipelines. Apply before December 2024.`,
+
+    bio: `Dr. APJ Abdul Kalam was born on October 15 1931 in Rameswaram Tamil Nadu. 
+He served as the 11th President of India from 2002 to 2007. He worked at ISRO 
+and DRDO and was instrumental in developing India's first satellite launch vehicle.he is very skilled in aerospace engineering and played a key role in India's nuclear tests in 1998.  
+He received the Bharat Ratna in 1997.`
+  }
+
+  function loadExample(type) {
+    document.getElementById("inputText").value = examples[type]
+  }
+
+  function renderTags(containerId, items, tagClass) {
+    const container = document.getElementById(containerId)
+    container.innerHTML = ""
+    if (!items || items.length === 0) {
+      container.innerHTML = `<span class="empty">None found</span>`
+      return
+    }
+    items.forEach(item => {
+      const tag = document.createElement("span")
+      tag.classList.add("tag", tagClass)
+      tag.textContent = item
+      container.appendChild(tag)
+    })
+  }
+
+  async function extractEntities() {
+    const text = document.getElementById("inputText").value.trim()
+    if (text === "") return
+
+    const btn     = document.getElementById("extractBtn")
+    const results = document.getElementById("results")
+    const errorBox = document.getElementById("errorBox")
+
+    btn.disabled    = true
+    btn.textContent = "Extracting..."
+    results.style.display  = "none"
+    errorBox.style.display = "none"
+
+    try {
+      const response = await fetch("http://127.0.0.1:5000/extract", {
+        method : "POST",
+        headers: { "Content-Type": "application/json" },
+        body   : JSON.stringify({ text: text })
+      })
+
+      const data = await response.json()
+
+      if (data.error) {
+        errorBox.textContent   = data.error
+        errorBox.style.display = "block"
+      } else {
+        document.getElementById("totalEntities").textContent = data.total    || 0
+        document.getElementById("wordCount").textContent     = data.word_count || 0
+
+        renderTags("persons",       data.persons,       "tag-person")
+        renderTags("organizations", data.organizations, "tag-organization")
+        renderTags("locations",     data.locations,     "tag-location")
+        renderTags("dates",         data.dates,         "tag-date")
+        renderTags("skills",        data.skills,        "tag-skill")
+        renderTags("awards",        data.awards,        "tag-award")
+
+        results.style.display = "block"
+      }
+
+    } catch (err) {
+      errorBox.textContent   = "Error: Is app.py running?"
+      errorBox.style.display = "block"
+    }
+
+    btn.disabled    = false
+    btn.textContent = "Extract Entities"
+  }
+</script>
+
+<!-- example buttons inside container, before closing div -->
+<script>
+  document.querySelector('.container').insertAdjacentHTML('beforeend', `
+    <div class="examples" style="margin-top:20px">
+      <p>Try a sample text:</p>
+      <span class="example-btn" onclick="loadExample('news')">📰 News Article</span>
+      <span class="example-btn" onclick="loadExample('job')">💼 Job Description</span>
+      <span class="example-btn" onclick="loadExample('bio')">👤 Biography</span>
+    </div>
+  `)
+</script>
+
+</body>
+</html>
