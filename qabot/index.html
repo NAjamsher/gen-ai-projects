@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QABot</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0d0d0d;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 40px 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 800px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .header {
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .header p {
+      font-size: 14px;
+      color: #666;
+      margin-top: 6px;
+    }
+
+    .card {
+      background: #1a1a1a;
+      border-radius: 16px;
+      padding: 24px;
+      border: 1px solid #2a2a2a;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card-title span {
+      font-size: 11px;
+      color: #7c6ff7;
+      cursor: pointer;
+      font-weight: 400;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 14px;
+      border: 1.5px solid #2a2a2a;
+      border-radius: 10px;
+      font-size: 14px;
+      font-family: inherit;
+      resize: vertical;
+      height: 180px;
+      outline: none;
+      transition: border 0.2s;
+      color: #e0e0e0;
+      background: #111;
+      line-height: 1.6;
+    }
+
+    textarea:focus { border-color: #7c6ff7; }
+    textarea::placeholder { color: #444; }
+
+    .word-count {
+      font-size: 11px;
+      color: #555;
+      text-align: right;
+      margin-top: 6px;
+    }
+
+    .word-count.ready { color: #7c6ff7; }
+
+    .examples-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .example-btn {
+      background: #111;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      color: #888;
+      transition: all 0.15s;
+      font-family: inherit;
+      width: auto;
+      margin-top: 0;
+    }
+
+    .example-btn:hover {
+      background: #2a2040;
+      border-color: #7c6ff7;
+      color: #a89df5;
+    }
+
+    .chat-window {
+      min-height: 200px;
+      max-height: 400px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 4px 0;
+    }
+
+    .empty-chat {
+      text-align: center;
+      color: #444;
+      font-size: 13px;
+      padding: 40px 0;
+      font-style: italic;
+    }
+
+    .chat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .question-bubble {
+      align-self: flex-end;
+      background: #2a2040;
+      color: #e0e0e0;
+      padding: 10px 14px;
+      border-radius: 14px;
+      border-bottom-right-radius: 4px;
+      font-size: 14px;
+      max-width: 85%;
+      line-height: 1.5;
+      border: 1px solid #3a3060;
+    }
+
+    .answer-bubble {
+      align-self: flex-start;
+      background: #1e1e1e;
+      color: #e0e0e0;
+      padding: 10px 14px;
+      border-radius: 14px;
+      border-bottom-left-radius: 4px;
+      font-size: 14px;
+      max-width: 85%;
+      line-height: 1.6;
+      border: 1px solid #2a2a2a;
+    }
+
+    .bubble-label {
+      font-size: 10px;
+      color: #555;
+      margin-bottom: 3px;
+    }
+
+    .answer-bubble.thinking {
+      color: #555;
+      font-style: italic;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .input-row input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1.5px solid #2a2a2a;
+      border-radius: 10px;
+      font-size: 14px;
+      outline: none;
+      font-family: inherit;
+      transition: border 0.2s;
+      background: #111;
+      color: #e0e0e0;
+    }
+
+    .input-row input:focus { border-color: #7c6ff7; }
+    .input-row input::placeholder { color: #444; }
+
+    .input-row button {
+      padding: 12px 22px;
+      background: #7c6ff7;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-family: inherit;
+      width: auto;
+      margin-top: 0;
+    }
+
+    .input-row button:hover    { background: #6a5fe0; }
+    .input-row button:disabled { background: #2a2a2a; color: #555; cursor: not-allowed; }
+
+    .error-box {
+      background: #2a1018;
+      border: 1.5px solid #6b2737;
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: #f48fb1;
+      font-size: 13px;
+      display: none;
+    }
+
+    .suggested-questions {
+      margin-top: 12px;
+    }
+
+    .suggested-title {
+      font-size: 11px;
+      color: #555;
+      margin-bottom: 8px;
+    }
+
+    .suggested-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .sq-chip {
+      background: #111;
+      border: 1px solid #2a2a2a;
+      border-radius: 99px;
+      padding: 4px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      color: #777;
+      transition: all 0.15s;
+      font-family: inherit;
+      width: auto;
+      margin-top: 0;
+    }
+
+    .sq-chip:hover {
+      background: #2a2040;
+      border-color: #7c6ff7;
+      color: #a89df5;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>QABot</h1>
+    <p>Paste any text and ask unlimited questions about it</p>
+  </div>
+
+  <!-- Context Card -->
+  <div class="card">
+    <div class="card-title">
+      Your Context / Document
+      <span onclick="clearContext()">Clear</span>
+    </div>
+    <textarea
+      id="contextText"
+      placeholder="Paste any paragraph, article, or document here. The bot will answer questions only from this text..."
+    ></textarea>
+    <div class="word-count" id="wordCount">0 words</div>
+
+    <div class="examples-row">
+      <button class="example-btn" onclick="loadExample('science')">🔬 Science</button>
+      <button class="example-btn" onclick="loadExample('history')">📜 History</button>
+      <button class="example-btn" onclick="loadExample('tech')">💻 Technology</button>
+    </div>
+  </div>
+
+  <!-- Chat Card -->
+  <div class="card">
+    <div class="card-title">
+      Ask Questions
+      <span onclick="clearChat()">Clear chat</span>
+    </div>
+
+    <div class="chat-window" id="chatWindow">
+      <div class="empty-chat" id="emptyChat">
+        Paste a context above and start asking questions
+      </div>
+    </div>
+
+    <div class="error-box" id="errorBox"></div>
+
+    <div class="input-row" style="margin-top:16px">
+      <input
+        type="text"
+        id="questionInput"
+        placeholder="Ask a question about the text..."
+      />
+      <button id="askBtn" onclick="askQuestion()">Ask</button>
+    </div>
+
+    <div class="suggested-questions" id="suggestedQuestions" style="display:none">
+      <div class="suggested-title">Suggested questions:</div>
+      <div class="suggested-chips" id="suggestedChips"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const contextText   = document.getElementById("contextText")
+  const wordCountEl   = document.getElementById("wordCount")
+  const chatWindow    = document.getElementById("chatWindow")
+  const emptyChat     = document.getElementById("emptyChat")
+  const questionInput = document.getElementById("questionInput")
+  const askBtn        = document.getElementById("askBtn")
+  const errorBox      = document.getElementById("errorBox")
+
+  let chatHistory = []
+
+  const examples = {
+    science: `Photosynthesis is the process by which plants use sunlight, water, and carbon dioxide to produce oxygen and energy in the form of sugar. This process takes place in the chloroplasts, specifically using the green pigment chlorophyll. There are two main stages: the light-dependent reactions and the Calvin cycle. During the light-dependent reactions, sunlight is absorbed and used to split water molecules, releasing oxygen as a byproduct. The energy captured is stored in molecules called ATP and NADPH. In the Calvin cycle, carbon dioxide from the air is fixed into organic molecules using the energy from ATP and NADPH. The result is glucose, which the plant uses for growth and energy.`,
+
+    history: `The Indian independence movement was a series of historic events with the ultimate aim of ending British rule in India. It lasted from 1857 until 1947. The movement included nonviolent resistance and civil disobedience led by Mahatma Gandhi and the Indian National Congress. Key events included the Salt March of 1930, the Quit India Movement of 1942, and the partition of India and Pakistan in 1947. India officially gained independence on August 15, 1947. Jawaharlal Nehru became the first Prime Minister of independent India and delivered his famous Tryst with Destiny speech at midnight.`,
+
+    tech: `Machine learning is a subset of artificial intelligence that enables computers to learn from data without being explicitly programmed. Instead of following hard-coded rules, machine learning algorithms build models based on training data to make predictions or decisions. There are three main types: supervised learning where the model learns from labeled data, unsupervised learning where the model finds patterns in unlabeled data, and reinforcement learning where the model learns by trial and error through rewards and penalties. Common applications include image recognition, spam detection, recommendation systems, and natural language processing. Popular machine learning frameworks include TensorFlow, PyTorch, and scikit-learn.`
+  }
+
+  const suggestedByExample = {
+    science: ["What is photosynthesis?", "Where does photosynthesis happen?", "What are the two stages?", "What is chlorophyll?"],
+    history: ["When did India gain independence?", "Who led the independence movement?", "What was the Salt March?", "Who was the first Prime Minister?"],
+    tech   : ["What is machine learning?", "What are the three types?", "Name some applications", "What frameworks are mentioned?"]
+  }
+
+  // live word counter
+  contextText.addEventListener("input", function() {
+    const words = contextText.value.trim() === ""
+      ? 0
+      : contextText.value.trim().split(/\s+/).length
+    wordCountEl.textContent = `${words} words`
+    wordCountEl.className   = words >= 20 ? "word-count ready" : "word-count"
+  })
+
+  // enter key to ask
+  questionInput.addEventListener("keydown", function(e) {
+    if (e.key === "Enter") askQuestion()
+  })
+
+  function loadExample(type) {
+    contextText.value = examples[type]
+    contextText.dispatchEvent(new Event("input"))
+    showSuggestedQuestions(type)
+  }
+
+  function showSuggestedQuestions(type) {
+    const container = document.getElementById("suggestedQuestions")
+    const chips     = document.getElementById("suggestedChips")
+    chips.innerHTML = ""
+    suggestedByExample[type].forEach(q => {
+      const chip = document.createElement("button")
+      chip.classList.add("sq-chip")
+      chip.textContent = q
+      chip.onclick = () => {
+        questionInput.value = q
+        askQuestion()
+      }
+      chips.appendChild(chip)
+    })
+    container.style.display = "block"
+  }
+
+  function addMessage(role, text) {
+    if (emptyChat) emptyChat.style.display = "none"
+
+    const item   = document.createElement("div")
+    item.classList.add("chat-item")
+
+    const label  = document.createElement("div")
+    label.classList.add("bubble-label")
+    label.textContent = role === "question" ? "You" : "QABot"
+    label.style.textAlign = role === "question" ? "right" : "left"
+
+    const bubble = document.createElement("div")
+    bubble.classList.add(
+      role === "question" ? "question-bubble" : "answer-bubble"
+    )
+    bubble.textContent = text
+
+    item.appendChild(label)
+    item.appendChild(bubble)
+    chatWindow.appendChild(item)
+    chatWindow.scrollTop = chatWindow.scrollHeight
+
+    return bubble
+  }
+
+  async function askQuestion() {
+    const context  = contextText.value.trim()
+    const question = questionInput.value.trim()
+
+    if (context === "") {
+      errorBox.textContent   = "Please paste a context first."
+      errorBox.style.display = "block"
+      return
+    }
+
+    if (question === "") return
+
+    errorBox.style.display = "none"
+    askBtn.disabled        = true
+    askBtn.textContent     = "..."
+    questionInput.value    = ""
+
+    // show question bubble
+    addMessage("question", question)
+
+    // show thinking bubble
+    const thinkingBubble = addMessage("answer", "Thinking...")
+    thinkingBubble.classList.add("thinking")
+
+    try {
+      const response = await fetch("http://127.0.0.1:5000/ask", {
+        method : "POST",
+        headers: { "Content-Type": "application/json" },
+        body   : JSON.stringify({
+          context     : context,
+          question    : question,
+          chat_history: chatHistory
+        })
+      })
+
+      const data = await response.json()
+
+      // replace thinking bubble with real answer
+      thinkingBubble.classList.remove("thinking")
+
+      if (data.error) {
+        thinkingBubble.textContent = data.error
+      } else {
+        thinkingBubble.textContent = data.answer
+
+        // save to chat history
+        chatHistory.push({
+          question: question,
+          answer  : data.answer
+        })
+      }
+
+    } catch (err) {
+      thinkingBubble.textContent = "Error: Is app.py running?"
+      thinkingBubble.classList.remove("thinking")
+    }
+
+    askBtn.disabled    = false
+    askBtn.textContent = "Ask"
+    chatWindow.scrollTop = chatWindow.scrollHeight
+  }
+
+  function clearContext() {
+    contextText.value          = ""
+    wordCountEl.textContent    = "0 words"
+    wordCountEl.className      = "word-count"
+    document.getElementById("suggestedQuestions").style.display = "none"
+  }
+
+  function clearChat() {
+    chatWindow.innerHTML = ""
+    chatHistory          = []
+    const empty          = document.createElement("div")
+    empty.classList.add("empty-chat")
+    empty.id             = "emptyChat"
+    empty.textContent    = "Paste a context above and start asking questions"
+    chatWindow.appendChild(empty)
+  }
+</script>
+
+</body>
+</html>
