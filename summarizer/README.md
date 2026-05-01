@@ -1,4 +1,4 @@
-markdown# Summarizer
+# Summarizer
 
 Paste any long text and get a clean 2-3 sentence summary instantly.
 Powered by Llama 3.1 via HuggingFace API.
