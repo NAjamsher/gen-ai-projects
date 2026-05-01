@@ -235,3 +235,4 @@ Calculates percentage compression as a display metric.
 ## License
 
 MIT
+

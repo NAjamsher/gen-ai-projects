@@ -9,7 +9,7 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-API_KEY = "your_api_key"  # your key here
+API_KEY = "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"  # your key here
 
 client = InferenceClient(
     provider="novita",

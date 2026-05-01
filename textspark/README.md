@@ -1,18 +1,19 @@
-# TextSpark
+# MoodDetector
 
-An AI-powered chat application that generates intelligent responses
-to any user prompt. Built with Python, Flask, and Llama 3.1 via
-HuggingFace Inference API.
+A sentiment analysis web app that detects the emotional tone of any
+sentence — Positive or Negative — with a confidence score.
+Built with Python, Flask, and DistilBERT running locally via
+HuggingFace Transformers.
 
 ---
 
 ## Features
 
-- Real-time AI chat in the browser
-- Powered by Meta's Llama 3.1 8B Instruct model
-- Flask backend keeps API key secure and hidden from client
-- Clean chat UI with message bubbles
-- Enter key support for quick messaging
+- Detects sentiment of any English sentence
+- Returns confidence score as an animated percentage bar
+- Color coded result card — green for positive, red for negative
+- Six one-click example sentences for quick testing
+- Model runs locally — no API call per request after initial load
 
 ---
 
@@ -21,25 +22,24 @@ HuggingFace Inference API.
 | Layer | Technology |
 |---|---|
 | Backend | Python, Flask |
-| AI Model | Llama 3.1 8B Instruct |
-| Provider | Novita via HuggingFace |
+| AI Model | DistilBERT (distilbert-base-uncased-finetuned-sst-2-english) |
+| Inference | HuggingFace Transformers (local) |
 | Frontend | HTML, CSS, JavaScript |
-| Auth | python-dotenv |
 
 ---
 
 ## How it works
 
 ```
-User types message
+User types sentence
         ↓
-Browser sends POST request to Flask /chat
+Browser sends POST request to Flask /analyze
         ↓
-Flask calls Llama 3.1 via HuggingFace API
+Flask passes text to local DistilBERT pipeline
         ↓
-Model generates response
+Model returns label (POSITIVE/NEGATIVE) + confidence score
         ↓
-Response displayed as chat bubble
+Result displayed with color card and animated confidence bar
 ```
 
 ---
@@ -47,10 +47,9 @@ Response displayed as chat bubble
 ## Project Structure
 
 ```
-textspark/
-├── app.py        — Flask backend, API call to HuggingFace
-├── index.html    — Chat UI with message bubbles
-├── .env          — API key (not committed)
+mooddetector/
+├── app.py        — Flask backend, DistilBERT pipeline, sentiment logic
+├── index.html    — Result card UI with confidence bar and example chips
 └── README.md
 ```
 
@@ -62,32 +61,24 @@ textspark/
 
 ```bash
 git clone https://github.com/NAjamsher/gen-ai-projects.git
-cd gen-ai-projects/textspark
+cd gen-ai-projects/mooddetector
 ```
 
 **2. Install dependencies**
 
 ```bash
-pip install flask flask-cors huggingface_hub python-dotenv
+pip install flask flask-cors transformers torch
 ```
 
-**3. Set up environment variables**
-
-Create a `.env` file inside the `textspark/` folder:
-
-```
-HUGGINGFACE_API_KEY=your_key_here
-```
-
-Get your free API key at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)
-
-**4. Run**
+**3. Run**
 
 ```bash
 python app.py
 ```
 
-**5. Open in browser**
+Model downloads automatically on first run (~250MB, one time only).
+
+**4. Open in browser**
 
 ```
 http://127.0.0.1:5000
@@ -97,25 +88,37 @@ http://127.0.0.1:5000
 
 ## Key Implementation Details
 
-**Client-server architecture**
+**Local inference**
 
-The API key never leaves the server. The browser communicates
-only with the Flask backend which handles all HuggingFace API
-calls. This is the standard architecture for any AI-powered
-web application.
+Unlike API-based projects, DistilBERT runs directly on your machine
+using HuggingFace Transformers. The model downloads once and is
+cached locally. No internet required after the initial download.
+No API key needed.
 
-**HuggingFace Inference API**
+**DistilBERT**
 
-Uses the chat completions endpoint via the Novita provider
-for fast and reliable inference on the free tier.
+A distilled version of BERT fine-tuned on the Stanford Sentiment
+Treebank (SST-2) dataset. 40% smaller and 60% faster than BERT
+while retaining 97% of its accuracy on sentiment tasks.
+
+**Confidence score**
+
+The model returns a raw float score between 0 and 1 alongside
+the label. Scores above 0.9 indicate high confidence. Scores
+near 0.5 indicate ambiguous sentiment.
+
+```python
+result     = sentiment_pipeline(text)[0]
+label      = result["label"]        # POSITIVE or NEGATIVE
+score      = result["score"]        # 0.9998
+confidence = round(score * 100, 2)  # 99.98
+```
 
 ---
 
 ## Environment Variables
 
-| Variable | Description |
-|---|---|
-| HUGGINGFACE_API_KEY | HuggingFace user access token |
+No API key required. Model runs locally.
 
 ---
 

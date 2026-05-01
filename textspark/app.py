@@ -4,12 +4,14 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from huggingface_hub import InferenceClient
+from dotenv import load_dotenv
 import os
+
+load_dotenv()
+API_KEY = os.getenv("HUGGINGFACE_API_KEY")
 
 app = Flask(__name__)
 CORS(app)
-
-API_KEY = "your_huggingface_api_key_here"  # your key here
 
 client = InferenceClient(
     provider="novita",
