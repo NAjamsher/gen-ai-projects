@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>News Analyzer</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0a0a0f;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 40px 20px;
+    }
+
+    .container {
+      background: #0f0f17;
+      border-radius: 20px;
+      padding: 40px;
+      width: 100%;
+      max-width: 700px;
+      border: 1px solid #1e1e2e;
+      box-shadow: 0 4px 40px rgba(0,0,0,0.4);
+    }
+
+    .header { text-align: center; margin-bottom: 32px; }
+
+    .badge {
+      display: inline-block;
+      background: #1a1a2e;
+      color: #7c6ff7;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 99px;
+      border: 1px solid #2a2a4e;
+      margin-bottom: 14px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .header h1 {
+      font-size: 26px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .header p { font-size: 13px; color: #555; }
+
+    .label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    textarea {
+      width: 100%;
+      background: #0a0a0f;
+      border: 1.5px solid #1e1e2e;
+      border-radius: 12px;
+      color: #e0e0e0;
+      font-family: inherit;
+      font-size: 14px;
+      padding: 16px;
+      outline: none;
+      resize: vertical;
+      height: 200px;
+      line-height: 1.6;
+      transition: border 0.2s;
+    }
+
+    textarea:focus { border-color: #7c6ff7; }
+    textarea::placeholder { color: #333; }
+
+    .word-count {
+      font-size: 11px;
+      color: #444;
+      text-align: right;
+      margin-top: 6px;
+    }
+
+    .word-count.ready { color: #7c6ff7; }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #7c6ff7;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 14px;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    button:hover    { background: #6a5fe0; transform: translateY(-1px); }
+    button:disabled { background: #1e1e2e; color: #444; cursor: not-allowed; transform: none; }
+
+    .pipeline {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+
+    .step {
+      background: #0a0a0f;
+      border: 1px solid #1e1e2e;
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: 12px;
+      color: #555;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.3s;
+    }
+
+    .step.active {
+      border-color: #7c6ff7;
+      color: #a89df5;
+      background: #14142a;
+    }
+
+    .step.done {
+      border-color: #1d9e75;
+      color: #4caf87;
+      background: #0a1a14;
+    }
+
+    .arrow { color: #333; font-size: 14px; }
+
+    .results {
+      margin-top: 24px;
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .results.show { display: flex; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-card {
+      background: #0a0a0f;
+      border: 1px solid #1e1e2e;
+      border-radius: 14px;
+      padding: 20px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .card-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #7c6ff7;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .copy-btn {
+      background: #1a1a2e;
+      border: 1px solid #2a2a4e;
+      border-radius: 6px;
+      color: #7c6ff7;
+      font-size: 11px;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-family: inherit;
+      width: auto;
+      margin-top: 0;
+      transition: all 0.15s;
+    }
+
+    .copy-btn:hover { background: #2a2a4e; transform: none; }
+
+    .card-text {
+      font-size: 14px;
+      color: #e0e0e0;
+      line-height: 1.8;
+    }
+
+    .sentiment-display {
+      text-align: center;
+      padding: 10px 0;
+    }
+
+    .sentiment-emoji { font-size: 40px; margin-bottom: 8px; }
+
+    .sentiment-label {
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .sentiment-positive { color: #4caf87; }
+    .sentiment-negative { color: #f48fb1; }
+    .sentiment-neutral  { color: #ffb74d; }
+
+    .tweet-count {
+      font-size: 11px;
+      color: #555;
+      text-align: right;
+      margin-top: 8px;
+    }
+
+    .tweet-count.over { color: #f48fb1; }
+
+    .error {
+      background: #1a0a0f;
+      border: 1px solid #3a1a22;
+      border-radius: 10px;
+      padding: 14px;
+      color: #f48fb1;
+      font-size: 13px;
+      margin-top: 14px;
+      display: none;
+    }
+
+    .flow-note {
+      background: #0f0f1f;
+      border: 1px solid #2a2a4e;
+      border-radius: 10px;
+      padding: 16px;
+      margin-top: 20px;
+      font-size: 12px;
+      color: #555;
+      line-height: 1.7;
+    }
+
+    .flow-note strong { color: #7c6ff7; }
+    .flow-note code {
+      background: #1a1a2e;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #a89df5;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div class="badge">⛓ LangChain · Sequential Chain</div>
+    <h1>News Analyzer</h1>
+    <p>Paste any news article — get summary, sentiment, and a tweet</p>
+  </div>
+
+  <div class="pipeline">
+    <div class="step" id="step1">📝 Summarize</div>
+    <div class="arrow">→</div>
+    <div class="step" id="step2">😊 Sentiment</div>
+    <div class="arrow">→</div>
+    <div class="step" id="step3">🐦 Tweet</div>
+  </div>
+
+  <span class="label">Paste your news article</span>
+  <textarea id="articleInput"
+    placeholder="Paste any news article here (minimum 30 words)...">
+  </textarea>
+  <div class="word-count" id="wordCount">0 words</div>
+
+  <button id="btn" onclick="analyze()">Analyze Article</button>
+
+  <div class="error" id="error"></div>
+
+  <div class="results" id="results">
+
+    <div class="result-card">
+      <div class="card-header">
+        <div class="card-label">
+          <span>📝</span> Step 1 — Summary
+        </div>
+        <button class="copy-btn" onclick="copy('summaryText', this)">Copy</button>
+      </div>
+      <div class="card-text" id="summaryText"></div>
+    </div>
+
+    <div class="result-card">
+      <div class="card-label" style="margin-bottom:12px">
+        <span>😊</span> Step 2 — Sentiment
+      </div>
+      <div class="sentiment-display">
+        <div class="sentiment-emoji"  id="sentimentEmoji"></div>
+        <div class="sentiment-label"  id="sentimentLabel"></div>
+      </div>
+    </div>
+
+    <div class="result-card">
+      <div class="card-header">
+        <div class="card-label">
+          <span>🐦</span> Step 3 — Suggested Tweet
+        </div>
+        <button class="copy-btn" onclick="copy('tweetText', this)">Copy</button>
+      </div>
+      <div class="card-text" id="tweetText"></div>
+      <div class="tweet-count" id="tweetCount">0 / 280 characters</div>
+    </div>
+
+  </div>
+
+  <div class="flow-note">
+    <strong>Sequential chain flow:</strong><br>
+    Article → <code>summarize_chain</code> → Summary →
+    <code>sentiment_chain</code> → Sentiment →
+    <code>tweet_chain(summary + sentiment)</code> → Tweet<br><br>
+    Each step's output becomes the next step's input.
+    The tweet chain receives both the summary AND the sentiment
+    so it can write a contextually appropriate tweet.
+  </div>
+</div>
+
+<script>
+  const articleInput = document.getElementById('articleInput')
+  const wordCountEl  = document.getElementById('wordCount')
+  const btn          = document.getElementById('btn')
+  const results      = document.getElementById('results')
+  const error        = document.getElementById('error')
+
+  articleInput.addEventListener('input', function() {
+    const words = this.value.trim() === ''
+      ? 0 : this.value.trim().split(/\s+/).length
+    wordCountEl.textContent = `${words} words`
+    wordCountEl.className   = words >= 30 ? 'word-count ready' : 'word-count'
+  })
+
+  function copy(id, btn) {
+    const text = document.getElementById(id).textContent
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'Copied!'
+      setTimeout(() => btn.textContent = 'Copy', 2000)
+    })
+  }
+
+  function setStep(num) {
+    for (let i = 1; i <= 3; i++) {
+      const el = document.getElementById(`step${i}`)
+      if (i < num)  el.className = 'step done'
+      else if (i === num) el.className = 'step active'
+      else el.className = 'step'
+    }
+  }
+
+  function resetSteps() {
+    for (let i = 1; i <= 3; i++) {
+      document.getElementById(`step${i}`).className = 'step'
+    }
+  }
+
+  function getSentimentDisplay(sentiment) {
+    const s = sentiment.toLowerCase()
+    if (s.includes('positive')) return { emoji: '😊', cls: 'sentiment-positive' }
+    if (s.includes('negative')) return { emoji: '😔', cls: 'sentiment-negative' }
+    return { emoji: '😐', cls: 'sentiment-neutral' }
+  }
+
+  async function analyze() {
+    const article = articleInput.value.trim()
+    if (!article) return
+
+    btn.disabled    = true
+    btn.textContent = 'Analyzing...'
+    results.classList.remove('show')
+    error.style.display = 'none'
+    resetSteps()
+
+    // show pipeline steps animating
+    setStep(1)
+    await new Promise(r => setTimeout(r, 500))
+    setStep(2)
+    await new Promise(r => setTimeout(r, 500))
+    setStep(3)
+
+    try {
+      const response = await fetch('http://127.0.0.1:5000/analyze', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify({ article })
+      })
+      const data = await response.json()
+
+      if (data.error) {
+        error.textContent   = data.error
+        error.style.display = 'block'
+        resetSteps()
+      } else {
+        // fill summary
+        document.getElementById('summaryText').textContent = data.summary
+
+        // fill sentiment
+        const { emoji, cls } = getSentimentDisplay(data.sentiment)
+        document.getElementById('sentimentEmoji').textContent = emoji
+        const labelEl = document.getElementById('sentimentLabel')
+        labelEl.textContent = data.sentiment
+        labelEl.className   = `sentiment-label ${cls}`
+
+        // fill tweet
+        document.getElementById('tweetText').textContent = data.tweet
+        const count   = data.tweet.length
+        const countEl = document.getElementById('tweetCount')
+        countEl.textContent = `${count} / 280 characters`
+        countEl.className   = count > 280 ? 'tweet-count over' : 'tweet-count'
+
+        // mark all steps done
+        for (let i = 1; i <= 3; i++) {
+          document.getElementById(`step${i}`).className = 'step done'
+        }
+
+        results.classList.add('show')
+      }
+    } catch {
+      error.textContent   = 'Error: Is app.py running?'
+      error.style.display = 'block'
+      resetSteps()
+    }
+
+    btn.disabled    = false
+    btn.textContent = 'Analyze Article'
+  }
+</script>
+
+</body>
+</html>

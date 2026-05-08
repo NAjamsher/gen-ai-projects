@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LangChain Summarizer</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0a0a0f;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 40px 20px;
+    }
+
+    .container {
+      background: #0f0f17;
+      border-radius: 20px;
+      padding: 40px;
+      width: 100%;
+      max-width: 680px;
+      border: 1px solid #1e1e2e;
+      box-shadow: 0 4px 40px rgba(0,0,0,0.4);
+    }
+
+    .header { text-align: center; margin-bottom: 32px; }
+
+    .badge {
+      display: inline-block;
+      background: #1a1a2e;
+      color: #7c6ff7;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 99px;
+      border: 1px solid #2a2a4e;
+      margin-bottom: 14px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .header h1 {
+      font-size: 26px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .header p { font-size: 13px; color: #555; }
+
+    .label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    textarea {
+      width: 100%;
+      background: #0a0a0f;
+      border: 1.5px solid #1e1e2e;
+      border-radius: 12px;
+      color: #e0e0e0;
+      font-family: inherit;
+      font-size: 14px;
+      padding: 16px;
+      outline: none;
+      resize: vertical;
+      height: 200px;
+      line-height: 1.6;
+      transition: border 0.2s;
+    }
+
+    textarea:focus { border-color: #7c6ff7; }
+    textarea::placeholder { color: #333; }
+
+    .word-count {
+      font-size: 11px;
+      color: #444;
+      text-align: right;
+      margin-top: 6px;
+    }
+
+    .word-count.ready { color: #7c6ff7; }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #7c6ff7;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 14px;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    button:hover    { background: #6a5fe0; transform: translateY(-1px); }
+    button:disabled { background: #1e1e2e; color: #444; cursor: not-allowed; transform: none; }
+
+    .result {
+      margin-top: 24px;
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-card {
+      background: #0a0a0f;
+      border: 1px solid #1e1e2e;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 14px;
+    }
+
+    .result-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #7c6ff7;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+
+    .result-text {
+      font-size: 15px;
+      color: #e0e0e0;
+      line-height: 1.8;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .stat {
+      background: #0a0a0f;
+      border: 1px solid #1e1e2e;
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+    }
+
+    .stat-value { font-size: 22px; font-weight: 700; color: #7c6ff7; }
+    .stat-label { font-size: 11px; color: #555; margin-top: 4px; }
+
+    .error {
+      background: #1a0a0f;
+      border: 1px solid #3a1a22;
+      border-radius: 10px;
+      padding: 14px;
+      color: #f48fb1;
+      font-size: 13px;
+      margin-top: 14px;
+      display: none;
+    }
+
+    .langchain-note {
+      background: #0f0f1f;
+      border: 1px solid #2a2a4e;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-top: 20px;
+      font-size: 12px;
+      color: #666;
+      line-height: 1.6;
+    }
+
+    .langchain-note strong { color: #7c6ff7; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div class="badge">⛓ Powered by LangChain</div>
+    <h1>LangChain Summarizer</h1>
+    <p>Day 3 Summarizer rebuilt using LangChain — same result, cleaner code</p>
+  </div>
+
+  <span class="label">Your text (minimum 30 words)</span>
+  <textarea id="inputText"
+    placeholder="Paste any article, paragraph or long text here...">
+  </textarea>
+  <div class="word-count" id="wordCount">0 words</div>
+
+  <button id="btn" onclick="summarize()">Summarize with LangChain</button>
+
+  <div class="error" id="error"></div>
+
+  <div class="result" id="result">
+    <div class="result-card">
+      <div class="result-label">Summary</div>
+      <div class="result-text" id="summaryText"></div>
+    </div>
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-value" id="original">0</div>
+        <div class="stat-label">Original words</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="summary">0</div>
+        <div class="stat-label">Summary words</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="reduced">0%</div>
+        <div class="stat-label">Reduced by</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="langchain-note">
+    <strong>How LangChain works here:</strong><br>
+    PromptTemplate builds the prompt → LLMChain connects it to the model →
+    chain.run() executes everything in one call. Compare this to Day 3
+    where you built all of this manually with f-strings and
+    client.chat.completions.create().
+  </div>
+</div>
+
+<script>
+  const inputText = document.getElementById('inputText')
+  const wordCount = document.getElementById('wordCount')
+  const btn       = document.getElementById('btn')
+  const result    = document.getElementById('result')
+  const error     = document.getElementById('error')
+
+  inputText.addEventListener('input', function() {
+    const words = this.value.trim() === ''
+      ? 0 : this.value.trim().split(/\s+/).length
+    wordCount.textContent = `${words} words`
+    wordCount.className   = words >= 30 ? 'word-count ready' : 'word-count'
+  })
+
+  async function summarize() {
+    const text = inputText.value.trim()
+    if (!text) return
+
+    btn.disabled    = true
+    btn.textContent = 'Summarizing with LangChain...'
+    result.style.display = 'none'
+    error.style.display  = 'none'
+
+    try {
+      const response = await fetch('http://127.0.0.1:5000/summarize', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify({ text })
+      })
+      const data = await response.json()
+
+      if (data.error) {
+        error.textContent   = data.error
+        error.style.display = 'block'
+      } else {
+        document.getElementById('summaryText').textContent = data.summary
+        document.getElementById('original').textContent    = data.original_words
+        document.getElementById('summary').textContent     = data.summary_words
+        document.getElementById('reduced').textContent     = `${data.reduced_by}%`
+        result.style.display = 'block'
+      }
+    } catch {
+      error.textContent   = 'Error: Is app.py running?'
+      error.style.display = 'block'
+    }
+
+    btn.disabled    = false
+    btn.textContent = 'Summarize with LangChain'
+  }
+</script>
+
+</body>
+</html>

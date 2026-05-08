@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Prompt Templates</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0a0a0f;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 40px 20px;
+    }
+
+    .container {
+      background: #0f0f17;
+      border-radius: 20px;
+      padding: 40px;
+      width: 100%;
+      max-width: 700px;
+      border: 1px solid #1e1e2e;
+      box-shadow: 0 4px 40px rgba(0,0,0,0.4);
+    }
+
+    .header { text-align: center; margin-bottom: 32px; }
+
+    .badge {
+      display: inline-block;
+      background: #1a1a2e;
+      color: #7c6ff7;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 99px;
+      border: 1px solid #2a2a4e;
+      margin-bottom: 14px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .header h1 {
+      font-size: 26px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .header p { font-size: 13px; color: #555; }
+
+    .input-group { margin-bottom: 16px; }
+
+    .label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      background: #0a0a0f;
+      border: 1.5px solid #1e1e2e;
+      border-radius: 12px;
+      color: #e0e0e0;
+      font-family: inherit;
+      font-size: 15px;
+      padding: 16px;
+      outline: none;
+      transition: border 0.2s;
+    }
+
+    input:focus { border-color: #7c6ff7; }
+    input::placeholder { color: #333; }
+
+    .examples {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .chip {
+      background: #0a0a0f;
+      border: 1px solid #1e1e2e;
+      border-radius: 99px;
+      padding: 5px 12px;
+      font-size: 12px;
+      color: #666;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+
+    .chip:hover {
+      border-color: #7c6ff7;
+      color: #a89df5;
+      background: #14142a;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #7c6ff7;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    button:hover    { background: #6a5fe0; transform: translateY(-1px); }
+    button:disabled { background: #1e1e2e; color: #444; cursor: not-allowed; transform: none; }
+
+    .results {
+      margin-top: 28px;
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .results.show { display: flex; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-card {
+      background: #0a0a0f;
+      border: 1px solid #1e1e2e;
+      border-radius: 14px;
+      padding: 20px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .card-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #7c6ff7;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .card-icon { font-size: 16px; }
+
+    .copy-btn {
+      background: #1a1a2e;
+      border: 1px solid #2a2a4e;
+      border-radius: 6px;
+      color: #7c6ff7;
+      font-size: 11px;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-family: inherit;
+      width: auto;
+      transition: all 0.15s;
+    }
+
+    .copy-btn:hover { background: #2a2a4e; transform: none; }
+
+    .card-text {
+      font-size: 14px;
+      color: #e0e0e0;
+      line-height: 1.8;
+    }
+
+    .tweet-count {
+      font-size: 11px;
+      color: #555;
+      text-align: right;
+      margin-top: 8px;
+    }
+
+    .tweet-count.over { color: #f48fb1; }
+
+    .error {
+      background: #1a0a0f;
+      border: 1px solid #3a1a22;
+      border-radius: 10px;
+      padding: 14px;
+      color: #f48fb1;
+      font-size: 13px;
+      margin-top: 14px;
+      display: none;
+    }
+
+    .how-it-works {
+      background: #0f0f1f;
+      border: 1px solid #2a2a4e;
+      border-radius: 10px;
+      padding: 16px;
+      margin-top: 20px;
+      font-size: 12px;
+      color: #555;
+      line-height: 1.7;
+    }
+
+    .how-it-works strong { color: #7c6ff7; }
+
+    .how-it-works code {
+      background: #1a1a2e;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #a89df5;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div class="badge">⛓ LangChain · PromptTemplate</div>
+    <h1>Content Generator</h1>
+    <p>Type one topic — get a blog intro, tweet, and tagline instantly</p>
+  </div>
+
+  <div class="input-group">
+    <span class="label">Your topic</span>
+    <input
+      type="text"
+      id="topicInput"
+      placeholder="e.g. Artificial Intelligence in Healthcare"
+    />
+    <div class="examples">
+      <span class="chip" onclick="setTopic('Artificial Intelligence')">AI</span>
+      <span class="chip" onclick="setTopic('Climate Change')">Climate Change</span>
+      <span class="chip" onclick="setTopic('Remote Work')">Remote Work</span>
+      <span class="chip" onclick="setTopic('Electric Vehicles')">Electric Cars</span>
+      <span class="chip" onclick="setTopic('Mental Health')">Mental Health</span>
+    </div>
+  </div>
+
+  <button id="btn" onclick="generate()">Generate Content</button>
+
+  <div class="error" id="error"></div>
+
+  <div class="results" id="results">
+    <div class="result-card">
+      <div class="card-header">
+        <div class="card-label">
+          <span class="card-icon">📝</span> Blog Introduction
+        </div>
+        <button class="copy-btn" onclick="copy('blogText', this)">Copy</button>
+      </div>
+      <div class="card-text" id="blogText"></div>
+    </div>
+
+    <div class="result-card">
+      <div class="card-header">
+        <div class="card-label">
+          <span class="card-icon">🐦</span> Tweet
+        </div>
+        <button class="copy-btn" onclick="copy('tweetText', this)">Copy</button>
+      </div>
+      <div class="card-text" id="tweetText"></div>
+      <div class="tweet-count" id="tweetCount">0 / 280 characters</div>
+    </div>
+
+    <div class="result-card">
+      <div class="card-header">
+        <div class="card-label">
+          <span class="card-icon">✨</span> Tagline
+        </div>
+        <button class="copy-btn" onclick="copy('taglineText', this)">Copy</button>
+      </div>
+      <div class="card-text" id="taglineText"></div>
+    </div>
+  </div>
+
+  <div class="how-it-works">
+    <strong>How LangChain works here:</strong><br>
+    Three separate <code>PromptTemplate</code> objects — one for blog, one for tweet,
+    one for tagline. Each connected to the same LLM using the pipe operator
+    <code>template | llm | parser</code>. One topic input, three separate chains
+    run independently, three different outputs.
+  </div>
+</div>
+
+<script>
+  const topicInput = document.getElementById('topicInput')
+  const btn        = document.getElementById('btn')
+  const results    = document.getElementById('results')
+  const error      = document.getElementById('error')
+
+  topicInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') generate()
+  })
+
+  function setTopic(topic) {
+    topicInput.value = topic
+    topicInput.focus()
+  }
+
+  function copy(id, btn) {
+    const text = document.getElementById(id).textContent
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'Copied!'
+      setTimeout(() => btn.textContent = 'Copy', 2000)
+    })
+  }
+
+  async function generate() {
+    const topic = topicInput.value.trim()
+    if (!topic) return
+
+    btn.disabled    = true
+    btn.textContent = 'Generating...'
+    results.classList.remove('show')
+    error.style.display = 'none'
+
+    try {
+      const response = await fetch('http://127.0.0.1:5000/generate', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify({ topic })
+      })
+      const data = await response.json()
+
+      if (data.error) {
+        error.textContent   = data.error
+        error.style.display = 'block'
+      } else {
+        document.getElementById('blogText').textContent    = data.blog
+        document.getElementById('tweetText').textContent   = data.tweet
+        document.getElementById('taglineText').textContent = data.tagline
+
+        // tweet character counter
+        const count    = data.tweet.length
+        const countEl  = document.getElementById('tweetCount')
+        countEl.textContent = `${count} / 280 characters`
+        countEl.className   = count > 280 ? 'tweet-count over' : 'tweet-count'
+
+        results.classList.add('show')
+      }
+    } catch {
+      error.textContent   = 'Error: Is app.py running?'
+      error.style.display = 'block'
+    }
+
+    btn.disabled    = false
+    btn.textContent = 'Generate Content'
+  }
+</script>
+
+</body>
+</html>
