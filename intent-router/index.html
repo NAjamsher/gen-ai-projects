@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Intent Router</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0a0a0f;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 40px 20px;
+    }
+
+    .container {
+      background: #0f0f17;
+      border-radius: 20px;
+      padding: 40px;
+      width: 100%;
+      max-width: 720px;
+      border: 1px solid #1e1e2e;
+      box-shadow: 0 4px 40px rgba(0,0,0,0.4);
+    }
+
+    .header { text-align: center; margin-bottom: 32px; }
+
+    .badge {
+      display: inline-block;
+      background: #1a1a2e;
+      color: #7c6ff7;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 99px;
+      border: 1px solid #2a2a4e;
+      margin-bottom: 14px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .header h1 {
+      font-size: 26px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .header p { font-size: 13px; color: #555; }
+
+    .label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    textarea {
+      width: 100%;
+      background: #0a0a0f;
+      border: 1.5px solid #1e1e2e;
+      border-radius: 12px;
+      color: #e0e0e0;
+      font-family: inherit;
+      font-size: 14px;
+      padding: 16px;
+      outline: none;
+      resize: vertical;
+      min-height: 110px;
+      transition: border 0.2s;
+    }
+
+    textarea:focus { border-color: #7c6ff7; }
+    textarea::placeholder { color: #333; }
+
+    .examples {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+      margin-bottom: 16px;
+    }
+
+    .chip {
+      background: #0a0a0f;
+      border: 1px solid #1e1e2e;
+      border-radius: 99px;
+      padding: 5px 12px;
+      font-size: 12px;
+      color: #666;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+
+    .chip:hover {
+      border-color: #7c6ff7;
+      color: #a89df5;
+      background: #14142a;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #7c6ff7;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    button:hover    { background: #6a5fe0; transform: translateY(-1px); }
+    button:disabled { background: #1e1e2e; color: #444; cursor: not-allowed; transform: none; }
+
+    .intent-badge {
+      display: none;
+      margin-top: 24px;
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    .intent-SUMMARIZE { background: #0d2a1a; color: #4caf88; border: 1px solid #1a4a30; display: block; }
+    .intent-SENTIMENT { background: #1a1a0d; color: #f0c040; border: 1px solid #3a3a10; display: block; }
+    .intent-QA        { background: #0d1a2a; color: #64b5f6; border: 1px solid #1a304a; display: block; }
+    .intent-GENERATE  { background: #2a0d2a; color: #ce93d8; border: 1px solid #4a1a4a; display: block; }
+    .intent-CHAT      { background: #1a0d0d; color: #ef9a9a; border: 1px solid #3a1a1a; display: block; }
+
+    .result-card {
+      display: none;
+      background: #0a0a0f;
+      border: 1px solid #1e1e2e;
+      border-radius: 14px;
+      padding: 20px;
+      margin-top: 16px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .result-card.show { display: block; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-text {
+      font-size: 14px;
+      color: #e0e0e0;
+      line-height: 1.8;
+      white-space: pre-wrap;
+    }
+
+    .sentiment-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .sentiment-item {
+      background: #14142a;
+      border: 1px solid #2a2a4e;
+      border-radius: 10px;
+      padding: 14px;
+    }
+
+    .sentiment-item .s-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .sentiment-item .s-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: #a89df5;
+    }
+
+    .sentiment-reason {
+      font-size: 13px;
+      color: #888;
+      line-height: 1.6;
+      margin-top: 4px;
+    }
+
+    .error {
+      background: #1a0a0f;
+      border: 1px solid #3a1a22;
+      border-radius: 10px;
+      padding: 14px;
+      color: #f48fb1;
+      font-size: 13px;
+      margin-top: 14px;
+      display: none;
+    }
+
+    .how-it-works {
+      background: #0f0f1f;
+      border: 1px solid #2a2a4e;
+      border-radius: 10px;
+      padding: 16px;
+      margin-top: 20px;
+      font-size: 12px;
+      color: #555;
+      line-height: 1.7;
+    }
+
+    .how-it-works strong { color: #7c6ff7; }
+    .how-it-works code {
+      background: #1a1a2e;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #a89df5;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div class="badge">⛓ LangChain · Intent Router</div>
+    <h1>Intent Router</h1>
+    <p>Type anything — the AI figures out what you want and routes it automatically</p>
+  </div>
+
+  <span class="label">Your message</span>
+  <textarea
+    id="msgInput"
+    placeholder="Type anything — summarize text, ask a question, detect mood, generate content, or just chat..."
+  ></textarea>
+
+  <div class="examples">
+    <span class="chip" onclick="setMsg('Summarize this: Artificial intelligence is transforming industries worldwide by automating tasks, improving decision making, and enabling new capabilities that were previously impossible.')">Summarize</span>
+    <span class="chip" onclick="setMsg('I am so frustrated today, nothing is going right and I feel completely overwhelmed.')">Detect Mood</span>
+    <span class="chip" onclick="setMsg('What is the difference between machine learning and deep learning?')">Ask Question</span>
+    <span class="chip" onclick="setMsg('Generate content about Electric Vehicles')">Generate Content</span>
+    <span class="chip" onclick="setMsg('Hey! How are you doing today?')">Just Chat</span>
+  </div>
+
+  <button id="btn" onclick="send()">Route My Message</button>
+
+  <div class="error"   id="error"></div>
+  <div class="intent-badge" id="intentBadge"></div>
+  <div class="result-card"  id="resultCard">
+    <div class="result-text" id="resultText"></div>
+  </div>
+</div>
+
+<div class="how-it-works" style="max-width:720px; margin: 16px auto 0;">
+  <strong>How routing works:</strong><br>
+  Step 1 — Intent chain reads your message and classifies it into one of 5 intents.<br>
+  Step 2 — Router function checks the intent and sends your message to the matching chain.<br>
+  Step 3 — That chain processes your message and returns the result.<br>
+  One input. Five possible paths. The AI decides which one.
+</div>
+
+<script>
+  const msgInput  = document.getElementById('msgInput')
+  const btn       = document.getElementById('btn')
+  const error     = document.getElementById('error')
+  const badge     = document.getElementById('intentBadge')
+  const card      = document.getElementById('resultCard')
+  const resultEl  = document.getElementById('resultText')
+
+  msgInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
+  })
+
+  function setMsg(text) {
+    msgInput.value = text
+    msgInput.focus()
+  }
+
+  function reset() {
+    error.style.display  = 'none'
+    badge.className      = 'intent-badge'
+    badge.textContent    = ''
+    card.classList.remove('show')
+    resultEl.innerHTML   = ''
+  }
+
+  async function send() {
+    const message = msgInput.value.trim()
+    if (!message) return
+
+    btn.disabled    = true
+    btn.textContent = 'Routing...'
+    reset()
+
+    try {
+      const response = await fetch('http://127.0.0.1:5000/ask', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify({ message })
+      })
+      const data = await response.json()
+
+      if (data.error) {
+        error.textContent   = data.error
+        error.style.display = 'block'
+      } else {
+        // show intent badge
+        badge.textContent = 'Routed to: ' + data.intent
+        badge.className   = 'intent-badge intent-' + data.intent
+
+        // show result
+        card.classList.add('show')
+
+        if (data.intent === 'SENTIMENT' && typeof data.result === 'object') {
+          const r = data.result
+          resultEl.innerHTML = `
+            <div class="sentiment-grid">
+              <div class="sentiment-item">
+                <div class="s-label">Sentiment</div>
+                <div class="s-value">${r.sentiment || 'N/A'}</div>
+              </div>
+              <div class="sentiment-item">
+                <div class="s-label">Confidence</div>
+                <div class="s-value">${r.confidence || 'N/A'}</div>
+              </div>
+            </div>
+            <div class="sentiment-reason">${r.reason || ''}</div>
+          `
+        } else {
+          resultEl.textContent = typeof data.result === 'string'
+            ? data.result
+            : JSON.stringify(data.result, null, 2)
+        }
+      }
+    } catch {
+      error.textContent   = 'Error: Is app.py running?'
+      error.style.display = 'block'
+    }
+
+    btn.disabled    = false
+    btn.textContent = 'Route My Message'
+  }
+</script>
+
+</body>
+</html>
