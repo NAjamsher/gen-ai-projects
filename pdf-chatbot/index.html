@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PDF Chatbot</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0a0a0f;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    .container { width: 100%; max-width: 780px; }
+
+    .header { text-align: center; margin-bottom: 28px; }
+
+    .badge {
+      display: inline-block;
+      background: #1a1a2e;
+      color: #7c6ff7;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 99px;
+      border: 1px solid #2a2a4e;
+      margin-bottom: 12px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .header h1 { font-size: 24px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+    .header p  { font-size: 13px; color: #555; }
+
+    .steps {
+      display: flex;
+      align-items: center;
+      background: #0f0f17;
+      border: 1px solid #1e1e2e;
+      border-radius: 14px;
+      padding: 14px 20px;
+      margin-bottom: 20px;
+    }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #333;
+      flex: 1;
+    }
+
+    .step.active { color: #a89df5; }
+    .step.done   { color: #4caf88; }
+
+    .step-num {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: #1e1e2e;
+      color: #444;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .step.active .step-num { background: #2a2a5e; color: #a89df5; }
+    .step.done   .step-num { background: #1a3a2a; color: #4caf88; }
+    .step-arrow { color: #222; font-size: 14px; margin: 0 8px; }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      background: #0f0f17;
+      border: 1px solid #1e1e2e;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      font-size: 12px;
+      color: #555;
+    }
+
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #333; flex-shrink: 0; }
+    .status-dot.ready { background: #4caf88; box-shadow: 0 0 6px #4caf8844; }
+
+    .panel { display: none; }
+    .panel.active { display: block; animation: fadeIn 0.25s ease; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .card {
+      background: #0f0f17;
+      border: 1px solid #1e1e2e;
+      border-radius: 16px;
+      padding: 22px;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #7c6ff7;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 14px;
+    }
+
+    /* ── DROP ZONE ── */
+    .drop-zone {
+      border: 2px dashed #1e1e2e;
+      border-radius: 14px;
+      padding: 50px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .drop-zone:hover,
+    .drop-zone.drag-over {
+      border-color: #7c6ff7;
+      background: #0f0f20;
+    }
+
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .drop-icon { font-size: 40px; margin-bottom: 12px; }
+    .drop-text { font-size: 14px; color: #555; margin-bottom: 6px; }
+    .drop-sub  { font-size: 12px; color: #333; }
+
+    .file-selected {
+      display: none;
+      background: #0a1a0f;
+      border: 1px solid #1a3a22;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #81c784;
+      margin-top: 12px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 13px;
+      background: #7c6ff7;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+      margin-top: 12px;
+    }
+
+    .btn:hover    { background: #6a5fe0; transform: translateY(-1px); }
+    .btn:disabled { background: #1e1e2e; color: #444; cursor: not-allowed; transform: none; }
+
+    .btn-sm {
+      width: auto;
+      padding: 8px 18px;
+      font-size: 13px;
+      margin-top: 0;
+      background: #1a1a2e;
+      border: 1px solid #2a2a4e;
+      color: #7c6ff7;
+    }
+
+    .btn-sm:hover { background: #2a2a4e; transform: none; }
+
+    /* ── PDF STATS ── */
+    .pdf-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .stat-box {
+      background: #0a0a0f;
+      border: 1px solid #1e1e2e;
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .stat-val   { font-size: 20px; font-weight: 700; color: #a89df5; display: block; }
+    .stat-label { font-size: 11px; color: #444; margin-top: 2px; }
+
+    /* ── CHAT ── */
+    .chat-window {
+      background: #0a0a0f;
+      border: 1px solid #1e1e2e;
+      border-radius: 12px;
+      padding: 16px;
+      min-height: 260px;
+      max-height: 380px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .chat-empty { color: #2a2a3a; font-size: 13px; text-align: center; margin: auto; }
+
+    .bubble { max-width: 85%; padding: 11px 15px; border-radius: 12px; font-size: 13px; line-height: 1.7; }
+    .bubble.user { background: #1a1a3a; color: #c0b8ff; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .bubble.ai   { background: #0f0f1f; border: 1px solid #1e1e2e; color: #e0e0e0; align-self: flex-start; border-bottom-left-radius: 4px; }
+
+    .chat-row { display: flex; gap: 10px; }
+
+    input[type="text"] {
+      flex: 1;
+      background: #0a0a0f;
+      border: 1.5px solid #1e1e2e;
+      border-radius: 12px;
+      color: #e0e0e0;
+      font-family: inherit;
+      font-size: 14px;
+      padding: 13px 16px;
+      outline: none;
+      transition: border 0.2s;
+    }
+
+    input:focus { border-color: #7c6ff7; }
+    input::placeholder { color: #2a2a3a; }
+
+    .sources-list { display: flex; flex-direction: column; gap: 6px; }
+
+    .source-item {
+      background: #0a0a0f;
+      border: 1px solid #1e1e2e;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: #777;
+      line-height: 1.6;
+    }
+
+    .source-rank { font-size: 10px; color: #7c6ff7; margin-bottom: 4px; font-weight: 700; }
+
+    .error {
+      background: #1a0a0f;
+      border: 1px solid #3a1a22;
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: #f48fb1;
+      font-size: 13px;
+      margin-top: 12px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="badge">📄 RAG · PDF · LangChain · FAISS</div>
+    <h1>PDF Chatbot</h1>
+    <p>Upload any PDF — ask unlimited questions — AI answers only from your document</p>
+  </div>
+
+  <!-- STEPS -->
+  <div class="steps">
+    <div class="step active" id="step-1"><div class="step-num">1</div> Upload PDF</div>
+    <div class="step-arrow">→</div>
+    <div class="step" id="step-2"><div class="step-num">2</div> Extract + Chunk + Index</div>
+    <div class="step-arrow">→</div>
+    <div class="step" id="step-3"><div class="step-num">3</div> Ask Questions</div>
+  </div>
+
+  <!-- STATUS -->
+  <div class="status-bar">
+    <div class="status-dot" id="status-dot"></div>
+    <span id="status-text">No PDF loaded — upload a PDF to begin</span>
+    <button class="btn btn-sm" style="margin-left:auto;" onclick="clearAll()">Clear</button>
+  </div>
+
+  <!-- PANEL 1 — UPLOAD -->
+  <div class="panel active" id="panel-upload">
+    <div class="card">
+      <div class="card-title">📄 Step 1 — Upload Your PDF</div>
+
+      <div class="drop-zone" id="drop-zone">
+        <input type="file" id="file-input" accept=".pdf" onchange="fileSelected(this)" />
+        <div class="drop-icon">📄</div>
+        <div class="drop-text">Drop your PDF here or click to browse</div>
+        <div class="drop-sub">Only PDF files supported</div>
+      </div>
+
+      <div class="file-selected" id="file-selected"></div>
+      <button class="btn" id="upload-btn" onclick="uploadPDF()" disabled>
+        Upload + Process PDF
+      </button>
+      <div class="error" id="upload-error"></div>
+    </div>
+  </div>
+
+  <!-- PANEL 2 — CHAT -->
+  <div class="panel" id="panel-chat">
+
+    <!-- PDF STATS -->
+    <div class="pdf-stats">
+      <div class="stat-box">
+        <span class="stat-val" id="stat-pages">—</span>
+        <div class="stat-label">Pages</div>
+      </div>
+      <div class="stat-box">
+        <span class="stat-val" id="stat-words">—</span>
+        <div class="stat-label">Words</div>
+      </div>
+      <div class="stat-box">
+        <span class="stat-val" id="stat-chunks">—</span>
+        <div class="stat-label">Chunks Indexed</div>
+      </div>
+    </div>
+
+    <!-- CHAT -->
+    <div class="card">
+      <div class="card-title" id="chat-title">💬 Ask Questions About Your PDF</div>
+      <div class="chat-window" id="chat-window">
+        <div class="chat-empty" id="chat-empty">PDF loaded — ask anything about it</div>
+      </div>
+      <div class="chat-row">
+        <input type="text" id="question-input" placeholder="What is this document about?" />
+        <button class="btn btn-sm" id="ask-btn" onclick="askQuestion()" style="padding: 0 20px;">Ask</button>
+      </div>
+      <div class="error" id="ask-error"></div>
+    </div>
+
+    <!-- SOURCES -->
+    <div class="card" id="sources-card" style="display:none;">
+      <div class="card-title">📎 Sources Used for Last Answer</div>
+      <div class="sources-list" id="sources-display"></div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+  let selectedFile    = null
+  let documentLoaded  = false
+
+  // ── STEP INDICATOR ─────────────────────────────────────────
+  function setStep(n) {
+    for (let i = 1; i <= 3; i++) {
+      const el = document.getElementById('step-' + i)
+      el.classList.remove('active', 'done')
+      if (i < n)  el.classList.add('done')
+      if (i === n) el.classList.add('active')
+    }
+  }
+
+  // ── FILE SELECTED ──────────────────────────────────────────
+  function fileSelected(input) {
+    if (input.files.length === 0) return
+    selectedFile = input.files[0]
+
+    const info = document.getElementById('file-selected')
+    info.style.display = 'block'
+    info.textContent   = `Selected: ${selectedFile.name} (${(selectedFile.size / 1024).toFixed(1)} KB)`
+
+    document.getElementById('upload-btn').disabled = false
+  }
+
+  // ── DRAG AND DROP ──────────────────────────────────────────
+  const dropZone = document.getElementById('drop-zone')
+  dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over') })
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'))
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault()
+    dropZone.classList.remove('drag-over')
+    const file = e.dataTransfer.files[0]
+    if (file && file.name.endsWith('.pdf')) {
+      selectedFile = file
+      const info = document.getElementById('file-selected')
+      info.style.display = 'block'
+      info.textContent   = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`
+      document.getElementById('upload-btn').disabled = false
+    }
+  })
+
+  // ── UPLOAD PDF ─────────────────────────────────────────────
+  async function uploadPDF() {
+    if (!selectedFile) return
+
+    const btn = document.getElementById('upload-btn')
+    btn.disabled    = true
+    btn.textContent = 'Processing PDF...'
+    document.getElementById('upload-error').style.display = 'none'
+    setStep(2)
+
+    const formData = new FormData()
+    formData.append('file', selectedFile)
+
+    try {
+      const res  = await fetch('http://127.0.0.1:5001/upload', {
+        method: 'POST',
+        body  : formData
+      })
+      const data = await res.json()
+
+      if (data.error) {
+        document.getElementById('upload-error').textContent   = data.error
+        document.getElementById('upload-error').style.display = 'block'
+        setStep(1)
+      } else {
+        // update stats
+        document.getElementById('stat-pages').textContent  = data.pages
+        document.getElementById('stat-words').textContent  = data.word_count.toLocaleString()
+        document.getElementById('stat-chunks').textContent = data.chunk_count
+
+        // update status bar
+        document.getElementById('status-dot').classList.add('ready')
+        document.getElementById('status-text').textContent = `${data.filename} — ${data.chunk_count} chunks indexed`
+
+        // update chat title
+        document.getElementById('chat-title').textContent = `💬 Ask Questions About: ${data.filename}`
+
+        // switch panels
+        document.getElementById('panel-upload').classList.remove('active')
+        document.getElementById('panel-chat').classList.add('active')
+        documentLoaded = true
+        setStep(3)
+      }
+    } catch {
+      document.getElementById('upload-error').textContent   = 'Error: Is app.py running?'
+      document.getElementById('upload-error').style.display = 'block'
+      setStep(1)
+    }
+
+    btn.disabled    = false
+    btn.textContent = 'Upload + Process PDF'
+  }
+
+  // ── ASK QUESTION ───────────────────────────────────────────
+  async function askQuestion() {
+    const query = document.getElementById('question-input').value.trim()
+    if (!query || !documentLoaded) return
+
+    document.getElementById('ask-btn').disabled    = true
+    document.getElementById('ask-btn').textContent = '...'
+    document.getElementById('ask-error').style.display  = 'none'
+    document.getElementById('chat-empty').style.display = 'none'
+
+    addBubble(query, 'user')
+    document.getElementById('question-input').value = ''
+    const thinkId = addBubble('Thinking...', 'ai')
+
+    try {
+      const res  = await fetch('http://127.0.0.1:5001/ask', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify({ query })
+      })
+      const data = await res.json()
+
+      if (data.error) {
+        document.getElementById(thinkId).textContent = data.error
+      } else {
+        document.getElementById(thinkId).textContent = data.answer
+
+        // show sources
+        const sourcesCard = document.getElementById('sources-card')
+        const sourcesList = document.getElementById('sources-display')
+        sourcesCard.style.display = 'block'
+        sourcesList.innerHTML     = ''
+        data.sources.forEach(s => {
+          sourcesList.innerHTML += `
+            <div class="source-item">
+              <div class="source-rank">Source Rank ${s.rank}</div>
+              ${s.text}
+            </div>`
+        })
+      }
+    } catch {
+      document.getElementById(thinkId).textContent = 'Error: Is app.py running?'
+    }
+
+    document.getElementById('ask-btn').disabled    = false
+    document.getElementById('ask-btn').textContent = 'Ask'
+  }
+
+  // ── BUBBLE ─────────────────────────────────────────────────
+  let bubbleCount = 0
+  function addBubble(text, role) {
+    const win = document.getElementById('chat-window')
+    const id  = 'bubble-' + (++bubbleCount)
+    const div = document.createElement('div')
+    div.className   = `bubble ${role}`
+    div.id          = id
+    div.textContent = text
+    win.appendChild(div)
+    win.scrollTop = win.scrollHeight
+    return id
+  }
+
+  // ── CLEAR ──────────────────────────────────────────────────
+  async function clearAll() {
+    await fetch('http://127.0.0.1:5001/clear', { method: 'POST' })
+    documentLoaded = false
+    selectedFile   = null
+    document.getElementById('panel-chat').classList.remove('active')
+    document.getElementById('panel-upload').classList.add('active')
+    document.getElementById('file-selected').style.display  = 'none'
+    document.getElementById('upload-btn').disabled          = true
+    document.getElementById('chat-window').innerHTML =
+      '<div class="chat-empty" id="chat-empty">PDF loaded — ask anything about it</div>'
+    document.getElementById('sources-card').style.display   = 'none'
+    document.getElementById('status-dot').classList.remove('ready')
+    document.getElementById('status-text').textContent      = 'No PDF loaded — upload a PDF to begin'
+    setStep(1)
+  }
+
+  // ── ENTER KEY ──────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('question-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') askQuestion()
+    })
+  })
+</script>
+</body>
+</html>

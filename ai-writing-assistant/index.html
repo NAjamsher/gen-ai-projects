@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Writing Assistant</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0a0a0f;
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 220px;
+      min-height: 100vh;
+      background: #0f0f17;
+      border-right: 1px solid #1e1e2e;
+      padding: 28px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .sidebar-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #7c6ff7;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 0 8px;
+      margin-bottom: 10px;
+    }
+
+    .nav-item {
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      color: #555;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: inherit;
+      background: none;
+      border: none;
+      width: 100%;
+      text-align: left;
+    }
+
+    .nav-item:hover { background: #14142a; color: #a89df5; }
+    .nav-item.active { background: #1a1a3a; color: #fff; font-weight: 600; }
+    .nav-item .icon { font-size: 15px; width: 20px; text-align: center; }
+
+    .sidebar-divider {
+      height: 1px;
+      background: #1e1e2e;
+      margin: 8px 0;
+    }
+
+    /* ── MAIN ── */
+    .main {
+      flex: 1;
+      padding: 40px;
+      max-width: 860px;
+    }
+
+    .panel { display: none; }
+    .panel.active { display: block; animation: fadeIn 0.25s ease; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .panel-header { margin-bottom: 28px; }
+
+    .badge {
+      display: inline-block;
+      background: #1a1a2e;
+      color: #7c6ff7;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 99px;
+      border: 1px solid #2a2a4e;
+      margin-bottom: 10px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .panel-header h1 { font-size: 22px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+    .panel-header p  { font-size: 13px; color: #555; }
+
+    .label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    textarea {
+      width: 100%;
+      background: #0a0a0f;
+      border: 1.5px solid #1e1e2e;
+      border-radius: 12px;
+      color: #e0e0e0;
+      font-family: inherit;
+      font-size: 14px;
+      padding: 16px;
+      outline: none;
+      resize: vertical;
+      min-height: 130px;
+      transition: border 0.2s;
+      line-height: 1.7;
+    }
+
+    textarea:focus { border-color: #7c6ff7; }
+    textarea::placeholder { color: #333; }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      background: #7c6ff7;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .btn:hover    { background: #6a5fe0; transform: translateY(-1px); }
+    .btn:disabled { background: #1e1e2e; color: #444; cursor: not-allowed; transform: none; }
+
+    .btn-secondary {
+      padding: 12px 20px;
+      background: #0a0a0f;
+      color: #7c6ff7;
+      border: 1.5px solid #2a2a4e;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .btn-secondary:hover { background: #14142a; }
+
+    select {
+      padding: 12px 16px;
+      background: #0a0a0f;
+      border: 1.5px solid #1e1e2e;
+      border-radius: 10px;
+      color: #e0e0e0;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      cursor: pointer;
+    }
+
+    select:focus { border-color: #7c6ff7; }
+
+    /* ── RESULT ── */
+    .result-section {
+      margin-top: 24px;
+      display: none;
+    }
+
+    .result-section.show { display: block; animation: fadeIn 0.3s ease; }
+
+    .stats-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .stat-chip {
+      background: #14142a;
+      border: 1px solid #2a2a4e;
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: 12px;
+      color: #a89df5;
+    }
+
+    .result-card {
+      background: #0a0a0f;
+      border: 1px solid #1e1e2e;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 14px;
+    }
+
+    .card-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #7c6ff7;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .copy-btn {
+      background: #1a1a2e;
+      border: 1px solid #2a2a4e;
+      border-radius: 6px;
+      color: #7c6ff7;
+      font-size: 11px;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+
+    .copy-btn:hover { background: #2a2a4e; }
+
+    .result-text {
+      font-size: 14px;
+      color: #e0e0e0;
+      line-height: 1.8;
+      white-space: pre-wrap;
+    }
+
+    .changes-list {
+      font-size: 13px;
+      color: #888;
+      line-height: 2;
+      white-space: pre-wrap;
+    }
+
+    /* ── CHAT ── */
+    .chat-window {
+      background: #0a0a0f;
+      border: 1px solid #1e1e2e;
+      border-radius: 14px;
+      padding: 20px;
+      min-height: 280px;
+      max-height: 400px;
+      overflow-y: auto;
+      margin-bottom: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .chat-empty {
+      color: #333;
+      font-size: 13px;
+      text-align: center;
+      margin: auto;
+    }
+
+    .bubble {
+      max-width: 80%;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .bubble.user {
+      background: #1a1a3a;
+      color: #c0b8ff;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+
+    .bubble.ai {
+      background: #0f0f1f;
+      border: 1px solid #1e1e2e;
+      color: #e0e0e0;
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+
+    .chat-input-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .chat-input-row input {
+      flex: 1;
+      background: #0a0a0f;
+      border: 1.5px solid #1e1e2e;
+      border-radius: 10px;
+      color: #e0e0e0;
+      font-family: inherit;
+      font-size: 14px;
+      padding: 12px 16px;
+      outline: none;
+      transition: border 0.2s;
+    }
+
+    .chat-input-row input:focus { border-color: #7c6ff7; }
+    .chat-input-row input::placeholder { color: #333; }
+
+    .error {
+      background: #1a0a0f;
+      border: 1px solid #3a1a22;
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: #f48fb1;
+      font-size: 13px;
+      margin-top: 12px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sidebar-title">✍ Writing Tools</div>
+
+  <button class="nav-item active" onclick="showPanel('improve')">
+    <span class="icon">✨</span> Improve
+  </button>
+  <button class="nav-item" onclick="showPanel('rewrite')">
+    <span class="icon">🔄</span> Rewrite
+  </button>
+  <button class="nav-item" onclick="showPanel('expand')">
+    <span class="icon">📖</span> Expand
+  </button>
+  <button class="nav-item" onclick="showPanel('shorten')">
+    <span class="icon">✂️</span> Shorten
+  </button>
+  <button class="nav-item" onclick="showPanel('grammar')">
+    <span class="icon">✅</span> Fix Grammar
+  </button>
+
+  <div class="sidebar-divider"></div>
+
+  <button class="nav-item" onclick="showPanel('chat')">
+    <span class="icon">💬</span> Ask AI
+  </button>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+
+  <!-- IMPROVE -->
+  <div class="panel active" id="panel-improve">
+    <div class="panel-header">
+      <div class="badge">⛓ Sequential Chain</div>
+      <h1>✨ Improve Text</h1>
+      <p>Fixes grammar, clarity, and flow — then explains what changed</p>
+    </div>
+    <span class="label">Your text</span>
+    <textarea id="improve-input" placeholder="Paste any text you want improved..."></textarea>
+    <div class="controls">
+      <button class="btn" id="improve-btn" onclick="runImprove()">Improve Text</button>
+    </div>
+    <div class="error" id="improve-error"></div>
+    <div class="result-section" id="improve-result">
+      <div class="stats-row" id="improve-stats"></div>
+      <div class="result-card">
+        <div class="card-label">
+          Improved Version
+          <button class="copy-btn" onclick="copyText('improve-output', this)">Copy</button>
+        </div>
+        <div class="result-text" id="improve-output"></div>
+      </div>
+      <div class="result-card">
+        <div class="card-label">What Changed</div>
+        <div class="changes-list" id="improve-changes"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REWRITE -->
+  <div class="panel" id="panel-rewrite">
+    <div class="panel-header">
+      <div class="badge">⛓ Multi-Input Chain</div>
+      <h1>🔄 Rewrite Text</h1>
+      <p>Rewrites your text in a different tone — same meaning, new style</p>
+    </div>
+    <span class="label">Your text</span>
+    <textarea id="rewrite-input" placeholder="Paste any text to rewrite..."></textarea>
+    <div class="controls">
+      <select id="tone-select">
+        <option value="professional">Professional</option>
+        <option value="casual">Casual</option>
+        <option value="formal">Formal</option>
+        <option value="friendly">Friendly</option>
+        <option value="persuasive">Persuasive</option>
+        <option value="simple">Simple</option>
+        <option value="academic">Academic</option>
+      </select>
+      <button class="btn" id="rewrite-btn" onclick="runRewrite()">Rewrite</button>
+    </div>
+    <div class="error" id="rewrite-error"></div>
+    <div class="result-section" id="rewrite-result">
+      <div class="stats-row" id="rewrite-stats"></div>
+      <div class="result-card">
+        <div class="card-label">
+          Rewritten Version
+          <button class="copy-btn" onclick="copyText('rewrite-output', this)">Copy</button>
+        </div>
+        <div class="result-text" id="rewrite-output"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXPAND -->
+  <div class="panel" id="panel-expand">
+    <div class="panel-header">
+      <div class="badge">⛓ PromptTemplate</div>
+      <h1>📖 Expand Text</h1>
+      <p>Adds more detail, examples, and depth — makes text 2-3x longer</p>
+    </div>
+    <span class="label">Your text</span>
+    <textarea id="expand-input" placeholder="Paste a short text to expand..."></textarea>
+    <div class="controls">
+      <button class="btn" id="expand-btn" onclick="runExpand()">Expand</button>
+    </div>
+    <div class="error" id="expand-error"></div>
+    <div class="result-section" id="expand-result">
+      <div class="stats-row" id="expand-stats"></div>
+      <div class="result-card">
+        <div class="card-label">
+          Expanded Version
+          <button class="copy-btn" onclick="copyText('expand-output', this)">Copy</button>
+        </div>
+        <div class="result-text" id="expand-output"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHORTEN -->
+  <div class="panel" id="panel-shorten">
+    <div class="panel-header">
+      <div class="badge">⛓ PromptTemplate</div>
+      <h1>✂️ Shorten Text</h1>
+      <p>Removes redundancy — keeps all key points at half the length</p>
+    </div>
+    <span class="label">Your text</span>
+    <textarea id="shorten-input" placeholder="Paste a long text to shorten..."></textarea>
+    <div class="controls">
+      <button class="btn" id="shorten-btn" onclick="runShorten()">Shorten</button>
+    </div>
+    <div class="error" id="shorten-error"></div>
+    <div class="result-section" id="shorten-result">
+      <div class="stats-row" id="shorten-stats"></div>
+      <div class="result-card">
+        <div class="card-label">
+          Shortened Version
+          <button class="copy-btn" onclick="copyText('shorten-output', this)">Copy</button>
+        </div>
+        <div class="result-text" id="shorten-output"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GRAMMAR -->
+  <div class="panel" id="panel-grammar">
+    <div class="panel-header">
+      <div class="badge">⛓ PromptTemplate</div>
+      <h1>✅ Fix Grammar</h1>
+      <p>Fixes all grammar, spelling, and punctuation — style unchanged</p>
+    </div>
+    <span class="label">Your text</span>
+    <textarea id="grammar-input" placeholder="Paste text with grammar issues..."></textarea>
+    <div class="controls">
+      <button class="btn" id="grammar-btn" onclick="runGrammar()">Fix Grammar</button>
+    </div>
+    <div class="error" id="grammar-error"></div>
+    <div class="result-section" id="grammar-result">
+      <div class="stats-row" id="grammar-stats"></div>
+      <div class="result-card">
+        <div class="card-label">
+          Corrected Version
+          <button class="copy-btn" onclick="copyText('grammar-output', this)">Copy</button>
+        </div>
+        <div class="result-text" id="grammar-output"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHAT -->
+  <div class="panel" id="panel-chat">
+    <div class="panel-header">
+      <div class="badge">⛓ Memory + Multi-Input</div>
+      <h1>💬 Ask AI About Your Text</h1>
+      <p>Paste your text and ask the AI anything about it — it remembers the conversation</p>
+    </div>
+    <span class="label">Your text</span>
+    <textarea id="chat-text" placeholder="Paste the text you want to discuss..."></textarea>
+    <div style="margin-top: 20px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+        <span class="label" style="margin:0;">Conversation</span>
+        <button class="btn-secondary" style="padding:6px 14px; font-size:12px;" onclick="clearChat()">Clear</button>
+      </div>
+      <div class="chat-window" id="chat-window">
+        <div class="chat-empty" id="chat-empty">Ask anything about your text...</div>
+      </div>
+      <div class="chat-input-row">
+        <input type="text" id="chat-question" placeholder="How can I make this more engaging?" />
+        <button class="btn" id="chat-btn" onclick="runChat()">Send</button>
+      </div>
+      <div class="error" id="chat-error"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ── SPA NAVIGATION ─────────────────────────────────────────
+  function showPanel(id) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'))
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'))
+    document.getElementById('panel-' + id).classList.add('active')
+    event.currentTarget.classList.add('active')
+  }
+
+  // ── COPY ───────────────────────────────────────────────────
+  function copyText(id, btn) {
+    const text = document.getElementById(id).textContent
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'Copied!'
+      setTimeout(() => btn.textContent = 'Copy', 2000)
+    })
+  }
+
+  // ── STATS CHIPS ────────────────────────────────────────────
+  function showStats(containerId, stats) {
+    const el = document.getElementById(containerId)
+    el.innerHTML = `
+      <div class="stat-chip">Original: ${stats.original_words} words</div>
+      <div class="stat-chip">Result: ${stats.result_words} words</div>
+      <div class="stat-chip">Change: ${stats.diff} words</div>
+    `
+  }
+
+  // ── LOADING STATE ──────────────────────────────────────────
+  function setLoading(btnId, loading, label) {
+    const btn = document.getElementById(btnId)
+    btn.disabled    = loading
+    btn.textContent = loading ? 'Working...' : label
+  }
+
+  // ── IMPROVE ────────────────────────────────────────────────
+  async function runImprove() {
+    const text = document.getElementById('improve-input').value.trim()
+    if (!text) return
+    setLoading('improve-btn', true, 'Improve Text')
+    document.getElementById('improve-error').style.display  = 'none'
+    document.getElementById('improve-result').classList.remove('show')
+
+    try {
+      const res  = await fetch('http://127.0.0.1:5000/improve', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ text })
+      })
+      const data = await res.json()
+      if (data.error) {
+        document.getElementById('improve-error').textContent   = data.error
+        document.getElementById('improve-error').style.display = 'block'
+      } else {
+        showStats('improve-stats', data.stats)
+        document.getElementById('improve-output').textContent  = data.result
+        document.getElementById('improve-changes').textContent = data.changes
+        document.getElementById('improve-result').classList.add('show')
+      }
+    } catch { showError('improve-error') }
+    setLoading('improve-btn', false, 'Improve Text')
+  }
+
+  // ── REWRITE ────────────────────────────────────────────────
+  async function runRewrite() {
+    const text = document.getElementById('rewrite-input').value.trim()
+    const tone = document.getElementById('tone-select').value
+    if (!text) return
+    setLoading('rewrite-btn', true, 'Rewrite')
+    document.getElementById('rewrite-error').style.display  = 'none'
+    document.getElementById('rewrite-result').classList.remove('show')
+
+    try {
+      const res  = await fetch('http://127.0.0.1:5000/rewrite', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ text, tone })
+      })
+      const data = await res.json()
+      if (data.error) {
+        document.getElementById('rewrite-error').textContent   = data.error
+        document.getElementById('rewrite-error').style.display = 'block'
+      } else {
+        showStats('rewrite-stats', data.stats)
+        document.getElementById('rewrite-output').textContent = data.result
+        document.getElementById('rewrite-result').classList.add('show')
+      }
+    } catch { showError('rewrite-error') }
+    setLoading('rewrite-btn', false, 'Rewrite')
+  }
+
+  // ── EXPAND ─────────────────────────────────────────────────
+  async function runExpand() {
+    const text = document.getElementById('expand-input').value.trim()
+    if (!text) return
+    setLoading('expand-btn', true, 'Expand')
+    document.getElementById('expand-error').style.display  = 'none'
+    document.getElementById('expand-result').classList.remove('show')
+
+    try {
+      const res  = await fetch('http://127.0.0.1:5000/expand', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ text })
+      })
+      const data = await res.json()
+      if (data.error) {
+        document.getElementById('expand-error').textContent   = data.error
+        document.getElementById('expand-error').style.display = 'block'
+      } else {
+        showStats('expand-stats', data.stats)
+        document.getElementById('expand-output').textContent = data.result
+        document.getElementById('expand-result').classList.add('show')
+      }
+    } catch { showError('expand-error') }
+    setLoading('expand-btn', false, 'Expand')
+  }
+
+  // ── SHORTEN ────────────────────────────────────────────────
+  async function runShorten() {
+    const text = document.getElementById('shorten-input').value.trim()
+    if (!text) return
+    setLoading('shorten-btn', true, 'Shorten')
+    document.getElementById('shorten-error').style.display  = 'none'
+    document.getElementById('shorten-result').classList.remove('show')
+
+    try {
+      const res  = await fetch('http://127.0.0.1:5000/shorten', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ text })
+      })
+      const data = await res.json()
+      if (data.error) {
+        document.getElementById('shorten-error').textContent   = data.error
+        document.getElementById('shorten-error').style.display = 'block'
+      } else {
+        showStats('shorten-stats', data.stats)
+        document.getElementById('shorten-output').textContent = data.result
+        document.getElementById('shorten-result').classList.add('show')
+      }
+    } catch { showError('shorten-error') }
+    setLoading('shorten-btn', false, 'Shorten')
+  }
+
+  // ── GRAMMAR ────────────────────────────────────────────────
+  async function runGrammar() {
+    const text = document.getElementById('grammar-input').value.trim()
+    if (!text) return
+    setLoading('grammar-btn', true, 'Fix Grammar')
+    document.getElementById('grammar-error').style.display  = 'none'
+    document.getElementById('grammar-result').classList.remove('show')
+
+    try {
+      const res  = await fetch('http://127.0.0.1:5000/grammar', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ text })
+      })
+      const data = await res.json()
+      if (data.error) {
+        document.getElementById('grammar-error').textContent   = data.error
+        document.getElementById('grammar-error').style.display = 'block'
+      } else {
+        showStats('grammar-stats', data.stats)
+        document.getElementById('grammar-output').textContent = data.result
+        document.getElementById('grammar-result').classList.add('show')
+      }
+    } catch { showError('grammar-error') }
+    setLoading('grammar-btn', false, 'Fix Grammar')
+  }
+
+  // ── CHAT ───────────────────────────────────────────────────
+  const chatHistory = []
+
+  async function runChat() {
+    const text     = document.getElementById('chat-text').value.trim()
+    const question = document.getElementById('chat-question').value.trim()
+    if (!text || !question) return
+
+    setLoading('chat-btn', true, 'Send')
+    document.getElementById('chat-error').style.display = 'none'
+    document.getElementById('chat-empty').style.display = 'none'
+
+    addBubble(question, 'user')
+    document.getElementById('chat-question').value = ''
+
+    const thinkId = addBubble('Thinking...', 'ai')
+
+    try {
+      const res  = await fetch('http://127.0.0.1:5000/chat', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ text, question })
+      })
+      const data = await res.json()
+      if (data.error) {
+        document.getElementById(thinkId).textContent      = data.error
+        document.getElementById('chat-error').textContent   = data.error
+        document.getElementById('chat-error').style.display = 'block'
+      } else {
+        document.getElementById(thinkId).textContent = data.reply
+      }
+    } catch {
+      document.getElementById(thinkId).textContent = 'Error: Is app.py running?'
+    }
+    setLoading('chat-btn', false, 'Send')
+  }
+
+  let bubbleCount = 0
+  function addBubble(text, role) {
+    const win = document.getElementById('chat-window')
+    const id  = 'bubble-' + (++bubbleCount)
+    const div = document.createElement('div')
+    div.className   = `bubble ${role}`
+    div.id          = id
+    div.textContent = text
+    win.appendChild(div)
+    win.scrollTop = win.scrollHeight
+    return id
+  }
+
+  async function clearChat() {
+    await fetch('http://127.0.0.1:5000/clear', { method: 'POST' })
+    document.getElementById('chat-window').innerHTML =
+      '<div class="chat-empty" id="chat-empty">Ask anything about your text...</div>'
+  }
+
+  function showError(id) {
+    document.getElementById(id).textContent   = 'Error: Is app.py running?'
+    document.getElementById(id).style.display = 'block'
+  }
+
+  // ── ENTER KEY ──────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('chat-question').addEventListener('keydown', e => {
+      if (e.key === 'Enter') runChat()
+    })
+  })
+</script>
+
+</body>
+</html>

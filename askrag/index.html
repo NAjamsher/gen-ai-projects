@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RAG Pipeline</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0a0a0f;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 780px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #1a1a2e;
+      color: #7c6ff7;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 99px;
+      border: 1px solid #2a2a4e;
+      margin-bottom: 12px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .header h1 { font-size: 24px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+    .header p  { font-size: 13px; color: #555; }
+
+    /* ── STEPS ── */
+    .steps {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 28px;
+      background: #0f0f17;
+      border: 1px solid #1e1e2e;
+      border-radius: 14px;
+      padding: 14px 20px;
+    }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #444;
+      flex: 1;
+    }
+
+    .step.active { color: #a89df5; }
+    .step.done   { color: #4caf88; }
+
+    .step-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #1e1e2e;
+      color: #555;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .step.active .step-num { background: #2a2a5e; color: #a89df5; }
+    .step.done   .step-num { background: #1a3a2a; color: #4caf88; }
+
+    .step-arrow { color: #222; font-size: 14px; margin: 0 8px; }
+
+    /* ── PANELS ── */
+    .panel { display: none; }
+    .panel.active { display: block; animation: fadeIn 0.25s ease; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .card {
+      background: #0f0f17;
+      border: 1px solid #1e1e2e;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #7c6ff7;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 14px;
+    }
+
+    .label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    textarea {
+      width: 100%;
+      background: #0a0a0f;
+      border: 1.5px solid #1e1e2e;
+      border-radius: 12px;
+      color: #e0e0e0;
+      font-family: inherit;
+      font-size: 14px;
+      padding: 14px 16px;
+      outline: none;
+      resize: vertical;
+      min-height: 160px;
+      line-height: 1.7;
+      transition: border 0.2s;
+    }
+
+    textarea:focus { border-color: #7c6ff7; }
+    textarea::placeholder { color: #2a2a3a; }
+
+    input[type="text"] {
+      width: 100%;
+      background: #0a0a0f;
+      border: 1.5px solid #1e1e2e;
+      border-radius: 12px;
+      color: #e0e0e0;
+      font-family: inherit;
+      font-size: 14px;
+      padding: 13px 16px;
+      outline: none;
+      transition: border 0.2s;
+    }
+
+    input:focus { border-color: #7c6ff7; }
+    input::placeholder { color: #2a2a3a; }
+
+    .btn {
+      width: 100%;
+      padding: 13px;
+      background: #7c6ff7;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+      margin-top: 12px;
+    }
+
+    .btn:hover    { background: #6a5fe0; transform: translateY(-1px); }
+    .btn:disabled { background: #1e1e2e; color: #444; cursor: not-allowed; transform: none; }
+
+    .btn-sm {
+      width: auto;
+      padding: 8px 18px;
+      font-size: 13px;
+      margin-top: 0;
+      background: #1a1a2e;
+      border: 1px solid #2a2a4e;
+      color: #7c6ff7;
+    }
+
+    .btn-sm:hover { background: #2a2a4e; transform: none; }
+
+    /* ── CHUNKS ── */
+    .chunks-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 260px;
+      overflow-y: auto;
+      margin-top: 12px;
+    }
+
+    .chunk-pill {
+      background: #0a0a0f;
+      border: 1px solid #1e1e2e;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #888;
+      line-height: 1.6;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .chunk-num {
+      color: #7c6ff7;
+      font-weight: 700;
+      font-size: 11px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* ── CHAT ── */
+    .chat-window {
+      background: #0a0a0f;
+      border: 1px solid #1e1e2e;
+      border-radius: 12px;
+      padding: 16px;
+      min-height: 240px;
+      max-height: 360px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .chat-empty {
+      color: #2a2a3a;
+      font-size: 13px;
+      text-align: center;
+      margin: auto;
+    }
+
+    .bubble { max-width: 85%; padding: 11px 15px; border-radius: 12px; font-size: 13px; line-height: 1.7; }
+    .bubble.user { background: #1a1a3a; color: #c0b8ff; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .bubble.ai   { background: #0f0f1f; border: 1px solid #1e1e2e; color: #e0e0e0; align-self: flex-start; border-bottom-left-radius: 4px; }
+
+    .chat-row { display: flex; gap: 10px; }
+    .chat-row input { flex: 1; }
+
+    /* ── SOURCES ── */
+    .sources-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .source-item {
+      background: #0a0a0f;
+      border: 1px solid #1e1e2e;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: #777;
+      line-height: 1.6;
+    }
+
+    .source-meta {
+      font-size: 10px;
+      color: #444;
+      margin-bottom: 4px;
+    }
+
+    .source-meta span { color: #7c6ff7; }
+
+    /* ── STATUS BAR ── */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      background: #0f0f17;
+      border: 1px solid #1e1e2e;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      font-size: 12px;
+      color: #555;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #333;
+      flex-shrink: 0;
+    }
+
+    .status-dot.ready { background: #4caf88; box-shadow: 0 0 6px #4caf8844; }
+
+    .error {
+      background: #1a0a0f;
+      border: 1px solid #3a1a22;
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: #f48fb1;
+      font-size: 13px;
+      margin-top: 12px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="badge">⚡ RAG · Auto Chunking · FAISS</div>
+    <h1>RAG Pipeline</h1>
+    <p>Paste any document — it gets chunked, embedded, and indexed — then ask anything</p>
+  </div>
+
+  <!-- STEP INDICATOR -->
+  <div class="steps">
+    <div class="step active" id="step-1">
+      <div class="step-num">1</div> Paste Document
+    </div>
+    <div class="step-arrow">→</div>
+    <div class="step" id="step-2">
+      <div class="step-num">2</div> Auto Chunk + Index
+    </div>
+    <div class="step-arrow">→</div>
+    <div class="step" id="step-3">
+      <div class="step-num">3</div> Ask Questions
+    </div>
+  </div>
+
+  <!-- STATUS BAR -->
+  <div class="status-bar">
+    <div class="status-dot" id="status-dot"></div>
+    <span id="status-text">No document loaded — paste a document to begin</span>
+    <button class="btn btn-sm" style="margin-left:auto;" onclick="clearAll()">Clear</button>
+  </div>
+
+  <!-- PANEL 1 — LOAD DOCUMENT -->
+  <div class="panel active" id="panel-load">
+    <div class="card">
+      <div class="card-title">📄 Step 1 — Paste Your Document</div>
+      <span class="label">Paste any article, paragraph, or report</span>
+      <textarea id="doc-input" placeholder="Paste any document here. It will be automatically split into chunks, embedded, and stored in a FAISS index ready for questions..."></textarea>
+      <button class="btn" id="load-btn" onclick="loadDocument()">Load Document → Build Index</button>
+      <div class="error" id="load-error"></div>
+    </div>
+  </div>
+
+  <!-- PANEL 2 — CHUNKS + QA -->
+  <div class="panel" id="panel-qa">
+
+    <div class="card">
+      <div class="card-title">🧩 Chunks Created</div>
+      <div class="chunks-grid" id="chunks-display"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">💬 Ask Questions About Your Document</div>
+      <div class="chat-window" id="chat-window">
+        <div class="chat-empty" id="chat-empty">Document loaded — ask anything about it</div>
+      </div>
+      <div class="chat-row">
+        <input type="text" id="question-input" placeholder="What is this document about?" />
+        <button class="btn btn-sm" id="ask-btn" onclick="askQuestion()" style="padding: 0 20px; margin-top:0;">Ask</button>
+      </div>
+      <div class="error" id="ask-error"></div>
+    </div>
+
+    <div class="card" id="sources-card" style="display:none;">
+      <div class="card-title">📎 Sources Used for Last Answer</div>
+      <div class="sources-list" id="sources-display"></div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+  let documentLoaded = false
+
+  // ── STEP INDICATOR ─────────────────────────────────────────
+  function setStep(n) {
+    for (let i = 1; i <= 3; i++) {
+      const el = document.getElementById('step-' + i)
+      el.classList.remove('active', 'done')
+      if (i < n)  el.classList.add('done')
+      if (i === n) el.classList.add('active')
+    }
+  }
+
+  // ── LOAD DOCUMENT ──────────────────────────────────────────
+  async function loadDocument() {
+    const text = document.getElementById('doc-input').value.trim()
+    if (!text) return
+
+    document.getElementById('load-btn').disabled    = true
+    document.getElementById('load-btn').textContent = 'Chunking + Indexing...'
+    document.getElementById('load-error').style.display = 'none'
+    setStep(2)
+
+    try {
+      const res  = await fetch('http://127.0.0.1:5001/load', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify({ document: text })
+      })
+      const data = await res.json()
+
+      if (data.error) {
+        document.getElementById('load-error').textContent   = data.error
+        document.getElementById('load-error').style.display = 'block'
+        setStep(1)
+      } else {
+        // show chunks
+        const grid = document.getElementById('chunks-display')
+        grid.innerHTML = ''
+        data.chunks.forEach((chunk, i) => {
+          grid.innerHTML += `
+            <div class="chunk-pill">
+              <span class="chunk-num">#${i+1}</span>
+              <span>${chunk}</span>
+            </div>`
+        })
+
+        // update status
+        document.getElementById('status-dot').classList.add('ready')
+        document.getElementById('status-text').textContent =
+          `Ready — ${data.chunk_count} chunks indexed`
+
+        // switch panels
+        document.getElementById('panel-load').classList.remove('active')
+        document.getElementById('panel-qa').classList.add('active')
+        documentLoaded = true
+        setStep(3)
+      }
+    } catch {
+      document.getElementById('load-error').textContent   = 'Error: Is app.py running?'
+      document.getElementById('load-error').style.display = 'block'
+      setStep(1)
+    }
+
+    document.getElementById('load-btn').disabled    = false
+    document.getElementById('load-btn').textContent = 'Load Document → Build Index'
+  }
+
+  // ── ASK QUESTION ───────────────────────────────────────────
+  async function askQuestion() {
+    const query = document.getElementById('question-input').value.trim()
+    if (!query || !documentLoaded) return
+
+    document.getElementById('ask-btn').disabled    = true
+    document.getElementById('ask-btn').textContent = '...'
+    document.getElementById('ask-error').style.display  = 'none'
+    document.getElementById('chat-empty').style.display = 'none'
+
+    addBubble(query, 'user')
+    document.getElementById('question-input').value = ''
+    const thinkId = addBubble('Thinking...', 'ai')
+
+    try {
+      const res  = await fetch('http://127.0.0.1:5001/ask', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify({ query })
+      })
+      const data = await res.json()
+
+      if (data.error) {
+        document.getElementById(thinkId).textContent = data.error
+      } else {
+        document.getElementById(thinkId).textContent = data.answer
+
+        // show sources
+        const sourcesCard = document.getElementById('sources-card')
+        const sourcesList = document.getElementById('sources-display')
+        sourcesCard.style.display = 'block'
+        sourcesList.innerHTML = ''
+        data.sources.forEach(s => {
+          sourcesList.innerHTML += `
+            <div class="source-item">
+              <div class="source-meta">
+                <span>Chunk Rank ${s.rank}</span>  —  Distance: ${s.distance.toFixed(4)}
+              </div>
+              ${s.text}
+            </div>`
+        })
+      }
+    } catch {
+      document.getElementById(thinkId).textContent = 'Error: Is app.py running?'
+    }
+
+    document.getElementById('ask-btn').disabled    = false
+    document.getElementById('ask-btn').textContent = 'Ask'
+  }
+
+  // ── BUBBLE HELPER ──────────────────────────────────────────
+  let bubbleCount = 0
+  function addBubble(text, role) {
+    const win = document.getElementById('chat-window')
+    const id  = 'bubble-' + (++bubbleCount)
+    const div = document.createElement('div')
+    div.className   = `bubble ${role}`
+    div.id          = id
+    div.textContent = text
+    win.appendChild(div)
+    win.scrollTop = win.scrollHeight
+    return id
+  }
+
+  // ── CLEAR ──────────────────────────────────────────────────
+  async function clearAll() {
+    await fetch('http://127.0.0.1:5001/clear', { method: 'POST' })
+    documentLoaded = false
+    document.getElementById('panel-qa').classList.remove('active')
+    document.getElementById('panel-load').classList.add('active')
+    document.getElementById('doc-input').value          = ''
+    document.getElementById('chat-window').innerHTML    =
+      '<div class="chat-empty" id="chat-empty">Document loaded — ask anything about it</div>'
+    document.getElementById('sources-card').style.display = 'none'
+    document.getElementById('status-dot').classList.remove('ready')
+    document.getElementById('status-text').textContent  = 'No document loaded — paste a document to begin'
+    setStep(1)
+  }
+
+  // ── ENTER KEY ──────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('question-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') askQuestion()
+    })
+  })
+</script>
+</body>
+</html>
