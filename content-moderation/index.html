@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Content Moderation API</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0a0a0f;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 32px 20px;
+    }
+
+    .container { width: 100%; max-width: 900px; }
+
+    .header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #1a1a2e;
+      color: #7c6ff7;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 99px;
+      border: 1px solid #2a2a4e;
+      margin-bottom: 12px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .header p { font-size: 13px; color: #555; }
+
+    /* ── STATS BAR ── */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .stat-box {
+      background: #0f0f17;
+      border: 1px solid #1e1e2e;
+      border-radius: 12px;
+      padding: 14px;
+      text-align: center;
+    }
+
+    .stat-val   { font-size: 24px; font-weight: 700; color: #fff; display: block; }
+    .stat-label { font-size: 11px; color: #444; margin-top: 3px; }
+
+    .stat-box.approved .stat-val { color: #4caf88; }
+    .stat-box.flagged  .stat-val { color: #f0c040; }
+    .stat-box.removed  .stat-val { color: #ef9a9a; }
+
+    /* ── TABS ── */
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .tab {
+      padding: 9px 20px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid #1e1e2e;
+      background: #0a0a0f;
+      color: #555;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+
+    .tab.active {
+      background: #1a1a3a;
+      color: #fff;
+      border-color: #7c6ff7;
+    }
+
+    .tab:hover { color: #a89df5; border-color: #2a2a4e; }
+
+    .panel { display: none; }
+    .panel.active {
+      display: block;
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: #0f0f17;
+      border: 1px solid #1e1e2e;
+      border-radius: 16px;
+      padding: 22px;
+      margin-bottom: 14px;
+    }
+
+    .card-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #7c6ff7;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 14px;
+    }
+
+    .label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    textarea {
+      width: 100%;
+      background: #0a0a0f;
+      border: 1.5px solid #1e1e2e;
+      border-radius: 12px;
+      color: #e0e0e0;
+      font-family: inherit;
+      font-size: 14px;
+      padding: 14px 16px;
+      outline: none;
+      resize: vertical;
+      min-height: 110px;
+      line-height: 1.7;
+      transition: border 0.2s;
+    }
+
+    textarea:focus { border-color: #7c6ff7; }
+    textarea::placeholder { color: #2a2a3a; }
+
+    .char-count {
+      font-size: 11px;
+      color: #333;
+      text-align: right;
+      margin-top: 4px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 13px;
+      background: #7c6ff7;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+      margin-top: 12px;
+    }
+
+    .btn:hover    { background: #6a5fe0; transform: translateY(-1px); }
+    .btn:disabled { background: #1e1e2e; color: #444; cursor: not-allowed; transform: none; }
+
+    /* ── RESULT CARD ── */
+    .result-card {
+      display: none;
+      background: #0a0a0f;
+      border: 1px solid #1e1e2e;
+      border-radius: 14px;
+      padding: 20px;
+      margin-top: 16px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .result-card.show { display: block; }
+
+    .verdict-badge {
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 99px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      margin-bottom: 14px;
+    }
+
+    .action-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 700;
+      margin-left: 8px;
+    }
+
+    /* verdict colors */
+    .v-SAFE            { background: #0d2a1a; color: #4caf88; border: 1px solid #1a4a2a; }
+    .v-HATE_SPEECH     { background: #2a0d0d; color: #ef9a9a; border: 1px solid #4a1a1a; }
+    .v-SPAM            { background: #2a2a0d; color: #f0c040; border: 1px solid #4a4a1a; }
+    .v-ABUSE           { background: #2a1a0d; color: #ffb74d; border: 1px solid #4a2a1a; }
+    .v-ADULT           { background: #1a0d2a; color: #ce93d8; border: 1px solid #2a1a4a; }
+    .v-MISINFORMATION  { background: #0d1a2a; color: #64b5f6; border: 1px solid #1a2a4a; }
+    .v-TOXIC           { background: #2a0d1a; color: #f48fb1; border: 1px solid #4a1a2a; }
+
+    /* action colors */
+    .a-APPROVE         { background: #0d2a1a; color: #4caf88; }
+    .a-FLAG_FOR_REVIEW { background: #2a2a0d; color: #f0c040; }
+    .a-AUTO_REMOVE     { background: #2a0d0d; color: #ef9a9a; }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .result-item {
+      background: #0f0f1f;
+      border: 1px solid #1e1e2e;
+      border-radius: 10px;
+      padding: 12px;
+    }
+
+    .result-item .r-label { font-size: 10px; color: #444; margin-bottom: 4px; }
+    .result-item .r-val   { font-size: 16px; font-weight: 700; color: #a89df5; }
+
+    .confidence-bar {
+      height: 6px;
+      background: #1e1e2e;
+      border-radius: 99px;
+      margin-top: 6px;
+      overflow: hidden;
+    }
+
+    .confidence-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 0.5s ease;
+    }
+
+    .reason-box {
+      background: #0f0f1f;
+      border: 1px solid #1e1e2e;
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 13px;
+      color: #888;
+      line-height: 1.6;
+    }
+
+    /* ── BATCH ── */
+    .batch-item {
+      background: #0a0a0f;
+      border: 1px solid #1e1e2e;
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .batch-num {
+      color: #333;
+      font-size: 12px;
+      min-width: 24px;
+      margin-top: 2px;
+    }
+
+    .batch-content {
+      flex: 1;
+      font-size: 13px;
+      color: #888;
+    }
+
+    .batch-result {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+      flex-wrap: wrap;
+    }
+
+    .batch-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 99px;
+    }
+
+    /* ── LOG TABLE ── */
+    .log-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .log-table th {
+      font-size: 10px;
+      font-weight: 700;
+      color: #444;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 8px 12px;
+      text-align: left;
+      border-bottom: 1px solid #1e1e2e;
+    }
+
+    .log-table td {
+      font-size: 12px;
+      color: #777;
+      padding: 10px 12px;
+      border-bottom: 1px solid #0f0f17;
+    }
+
+    .log-table tr:last-child td { border-bottom: none; }
+    .log-table tr:hover td { background: #0f0f17; }
+
+    /* ── SAMPLE TESTS ── */
+    .sample-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .sample-btn {
+      background: #0a0a0f;
+      border: 1px solid #1e1e2e;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #666;
+      cursor: pointer;
+      font-family: inherit;
+      text-align: left;
+      line-height: 1.5;
+      transition: all 0.15s;
+    }
+
+    .sample-btn:hover {
+      border-color: #7c6ff7;
+      color: #a89df5;
+      background: #0f0f20;
+    }
+
+    .sample-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .error {
+      background: #1a0a0f;
+      border: 1px solid #3a1a22;
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: #f48fb1;
+      font-size: 13px;
+      margin-top: 12px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="badge">🛡️ AI Content Moderation API</div>
+    <h1>Content Moderation</h1>
+    <p>Detect hate speech, spam, abuse, and harmful content automatically</p>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-bar">
+    <div class="stat-box">
+      <span class="stat-val" id="stat-total">0</span>
+      <div class="stat-label">Total Moderated</div>
+    </div>
+    <div class="stat-box approved">
+      <span class="stat-val" id="stat-approved">0</span>
+      <div class="stat-label">Approved</div>
+    </div>
+    <div class="stat-box flagged">
+      <span class="stat-val" id="stat-flagged">0</span>
+      <div class="stat-label">Flagged</div>
+    </div>
+    <div class="stat-box removed">
+      <span class="stat-val" id="stat-removed">0</span>
+      <div class="stat-label">Auto Removed</div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('single', this)">Single Content</button>
+    <button class="tab"        onclick="switchTab('batch',  this)">Batch Moderation</button>
+    <button class="tab"        onclick="switchTab('log',    this)">Moderation Log</button>
+  </div>
+
+  <!-- SINGLE TAB -->
+  <div class="panel active" id="panel-single">
+    <div class="card">
+      <div class="card-title">🔍 Moderate Single Content</div>
+      <span class="label">Content to analyze</span>
+      <textarea
+        id="single-input"
+        placeholder="Paste any comment, review, message, or post here..."
+        oninput="updateCharCount()"
+      ></textarea>
+      <div class="char-count"><span id="char-count">0</span> / 2000</div>
+
+      <div class="sample-grid">
+        <button class="sample-btn" onclick="setSample('This product is amazing! Fast delivery and great quality. Highly recommend to everyone.')">
+          <div class="sample-label" style="color:#4caf88;">✅ Safe</div>
+          Positive product review
+        </button>
+        <button class="sample-btn" onclick="setSample('Buy followers cheap! 10000 followers for just $5. DM me now. Limited offer!!!')">
+          <div class="sample-label" style="color:#f0c040;">⚠️ Spam</div>
+          Spam message
+        </button>
+        <button class="sample-btn" onclick="setSample('I disagree with this policy. The government should reconsider their approach to economic reform.')">
+          <div class="sample-label" style="color:#4caf88;">✅ Safe</div>
+          Political opinion
+        </button>
+        <button class="sample-btn" onclick="setSample('You are an idiot and should not be allowed to post anything. Nobody wants to hear your stupid opinions.')">
+          <div class="sample-label" style="color:#ef9a9a;">🚫 Abuse</div>
+          Abusive comment
+        </button>
+      </div>
+
+      <button class="btn" id="single-btn" onclick="moderateSingle()">
+        Analyze Content
+      </button>
+      <div class="error" id="single-error"></div>
+
+      <!-- RESULT -->
+      <div class="result-card" id="single-result">
+        <div>
+          <span class="verdict-badge" id="result-verdict"></span>
+          <span class="action-badge"  id="result-action"></span>
+        </div>
+
+        <div class="result-grid">
+          <div class="result-item">
+            <div class="r-label">Confidence</div>
+            <div class="r-val" id="result-confidence">—</div>
+            <div class="confidence-bar">
+              <div class="confidence-fill" id="confidence-fill" style="width:0%"></div>
+            </div>
+          </div>
+          <div class="result-item">
+            <div class="r-label">Severity</div>
+            <div class="r-val" id="result-severity">—</div>
+          </div>
+          <div class="result-item">
+            <div class="r-label">Category</div>
+            <div class="r-val" id="result-category">—</div>
+          </div>
+        </div>
+
+        <div class="reason-box" id="result-reason"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BATCH TAB -->
+  <div class="panel" id="panel-batch">
+    <div class="card">
+      <div class="card-title">📋 Batch Moderation</div>
+      <span class="label">Enter one item per line (max 10)</span>
+      <textarea
+        id="batch-input"
+        style="min-height:180px;"
+        placeholder="This is a great product!
+Buy cheap followers now!!!
+I hate this brand so much
+The delivery was delayed by 2 days"
+      ></textarea>
+      <button class="btn" id="batch-btn" onclick="moderateBatch()">
+        Moderate All Items
+      </button>
+      <div class="error" id="batch-error"></div>
+      <div id="batch-results" style="margin-top:16px;"></div>
+    </div>
+  </div>
+
+  <!-- LOG TAB -->
+  <div class="panel" id="panel-log">
+    <div class="card">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+        <div class="card-title" style="margin:0;">📊 Moderation Log</div>
+        <button onclick="clearLog()" style="
+          background:none; border:1px solid #1e1e2e; border-radius:8px;
+          padding:5px 12px; font-size:11px; color:#555; cursor:pointer; font-family:inherit;">
+          Clear Log
+        </button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="log-table" id="log-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Content</th>
+              <th>Verdict</th>
+              <th>Confidence</th>
+              <th>Action</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody id="log-body">
+            <tr><td colspan="6" style="text-align:center; color:#2a2a3a; padding:20px;">No moderation history yet</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ── TAB SWITCHING ──────────────────────────────────────────
+  function switchTab(id, el) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'))
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
+    document.getElementById('panel-' + id).classList.add('active')
+    el.classList.add('active')
+    if (id === 'log') loadLog()
+  }
+
+  // ── CHAR COUNT ─────────────────────────────────────────────
+  function updateCharCount() {
+    const len = document.getElementById('single-input').value.length
+    document.getElementById('char-count').textContent = len
+  }
+
+  // ── SAMPLE SETTER ──────────────────────────────────────────
+  function setSample(text) {
+    document.getElementById('single-input').value = text
+    updateCharCount()
+  }
+
+  // ── CONFIDENCE COLOR ───────────────────────────────────────
+  function confidenceColor(confidence) {
+    if (confidence >= 80) return '#ef9a9a'
+    if (confidence >= 60) return '#f0c040'
+    return '#4caf88'
+  }
+
+  // ── MODERATE SINGLE ────────────────────────────────────────
+  async function moderateSingle() {
+    const content = document.getElementById('single-input').value.trim()
+    if (!content) return
+
+    const btn = document.getElementById('single-btn')
+    btn.disabled    = true
+    btn.textContent = 'Analyzing...'
+    document.getElementById('single-error').style.display  = 'none'
+    document.getElementById('single-result').classList.remove('show')
+
+    try {
+      const res  = await fetch('http://127.0.0.1:5001/moderate', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify({ content })
+      })
+      const data = await res.json()
+
+      if (data.error) {
+        document.getElementById('single-error').textContent   = data.error
+        document.getElementById('single-error').style.display = 'block'
+      } else {
+        // verdict badge
+        const vb = document.getElementById('result-verdict')
+        vb.textContent = data.verdict.replace(/_/g, ' ')
+        vb.className   = `verdict-badge v-${data.verdict}`
+
+        // action badge
+        const ab = document.getElementById('result-action')
+        ab.textContent = data.action.replace(/_/g, ' ')
+        ab.className   = `action-badge a-${data.action}`
+
+        // stats
+        document.getElementById('result-confidence').textContent = data.confidence + '%'
+        document.getElementById('result-severity').textContent   = data.severity
+        document.getElementById('result-category').textContent   = data.verdict.replace(/_/g, ' ')
+        document.getElementById('result-reason').textContent     = data.reason
+
+        // confidence bar
+        const fill = document.getElementById('confidence-fill')
+        fill.style.width      = data.confidence + '%'
+        fill.style.background = confidenceColor(data.confidence)
+
+        document.getElementById('single-result').classList.add('show')
+        updateStats()
+      }
+    } catch {
+      document.getElementById('single-error').textContent   = 'Error: Is app.py running?'
+      document.getElementById('single-error').style.display = 'block'
+    }
+
+    btn.disabled    = false
+    btn.textContent = 'Analyze Content'
+  }
+
+  // ── MODERATE BATCH ─────────────────────────────────────────
+  async function moderateBatch() {
+    const text  = document.getElementById('batch-input').value.trim()
+    const items = text.split('\n').map(l => l.trim()).filter(Boolean)
+
+    if (items.length === 0) return
+    if (items.length > 10) {
+      document.getElementById('batch-error').textContent   = 'Maximum 10 items per batch.'
+      document.getElementById('batch-error').style.display = 'block'
+      return
+    }
+
+    const btn = document.getElementById('batch-btn')
+    btn.disabled    = true
+    btn.textContent = 'Moderating...'
+    document.getElementById('batch-error').style.display = 'none'
+    document.getElementById('batch-results').innerHTML   = ''
+
+    try {
+      const res  = await fetch('http://127.0.0.1:5001/moderate/batch', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify({ items })
+      })
+      const data = await res.json()
+
+      if (data.error) {
+        document.getElementById('batch-error').textContent   = data.error
+        document.getElementById('batch-error').style.display = 'block'
+      } else {
+        const container = document.getElementById('batch-results')
+        data.results.forEach((r, i) => {
+          container.innerHTML += `
+            <div class="batch-item">
+              <div class="batch-num">${i + 1}.</div>
+              <div class="batch-content">
+                <div style="color:#ccc; margin-bottom:6px;">${items[i] || ''}</div>
+                <div class="batch-result">
+                  <span class="batch-badge v-${r.verdict}">${(r.verdict || '').replace(/_/g, ' ')}</span>
+                  <span class="batch-badge a-${r.action}">${(r.action || '').replace(/_/g, ' ')}</span>
+                  <span style="font-size:11px; color:#444;">${r.confidence || 0}% confidence</span>
+                </div>
+              </div>
+            </div>`
+        })
+        updateStats()
+      }
+    } catch {
+      document.getElementById('batch-error').textContent   = 'Error: Is app.py running?'
+      document.getElementById('batch-error').style.display = 'block'
+    }
+
+    btn.disabled    = false
+    btn.textContent = 'Moderate All Items'
+  }
+
+  // ── LOAD LOG ───────────────────────────────────────────────
+  async function loadLog() {
+    try {
+      const res  = await fetch('http://127.0.0.1:5001/log')
+      const data = await res.json()
+      const body = document.getElementById('log-body')
+
+      if (data.log.length === 0) {
+        body.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#2a2a3a; padding:20px;">No moderation history yet</td></tr>'
+        return
+      }
+
+      body.innerHTML = ''
+      data.log.slice().reverse().forEach(l => {
+        body.innerHTML += `
+          <tr>
+            <td style="color:#444;">${l.id}</td>
+            <td>${l.content}</td>
+            <td><span class="batch-badge v-${l.verdict}" style="font-size:10px;">${l.verdict.replace(/_/g, ' ')}</span></td>
+            <td style="color:#a89df5;">${l.confidence}%</td>
+            <td><span class="batch-badge a-${l.action}" style="font-size:10px;">${l.action.replace(/_/g, ' ')}</span></td>
+            <td style="color:#333;">${l.timestamp}</td>
+          </tr>`
+      })
+    } catch {}
+  }
+
+  // ── UPDATE STATS ───────────────────────────────────────────
+  async function updateStats() {
+    try {
+      const res  = await fetch('http://127.0.0.1:5001/log')
+      const data = await res.json()
+      document.getElementById('stat-total').textContent    = data.stats.total
+      document.getElementById('stat-approved').textContent = data.stats.approved
+      document.getElementById('stat-flagged').textContent  = data.stats.flagged
+      document.getElementById('stat-removed').textContent  = data.stats.removed
+    } catch {}
+  }
+
+  // ── CLEAR LOG ──────────────────────────────────────────────
+  async function clearLog() {
+    await fetch('http://127.0.0.1:5001/log/clear', { method: 'POST' })
+    loadLog()
+    updateStats()
+  }
+</script>
+</body>
+</html>
